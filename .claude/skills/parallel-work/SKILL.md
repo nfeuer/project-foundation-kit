@@ -1,0 +1,85 @@
+---
+name: parallel-work
+description: Isolate concurrent Claude sessions in git worktrees so multiple agents never cross wires on main — create, work, PR, and auto-clean per-branch worktrees
+---
+
+# Parallel Work — Worktree Isolation for Concurrent Agents
+
+Use this whenever more than one Claude instance may touch the repo at once, or
+whenever you start a discrete unit of work that will become its own PR. The rule
+is simple: **never edit source files on `main`.** Each stream of work gets its
+own branch in its own git worktree, so two agents editing at the same time can't
+corrupt each other's tree or produce a tangled `main`.
+
+The `require-worktree.sh` PreToolUse hook enforces this — it blocks `Edit`/`Write`
+on `main` in the primary worktree. If you hit that block, you're in the wrong
+place; follow this skill.
+
+## Workflow
+
+### 1. Start an isolated worktree
+Pick a branch name matching the change type (`feat/`, `fix/`, `docs/`, `chore/`):
+
+```bash
+repo_root=$(git rev-parse --show-toplevel)
+name=<short-kebab-slug>
+git worktree add "$repo_root/.claude/worktrees/$name" -b feat/$name
+```
+
+From here on, **use absolute paths under that worktree** for every edit. Do not
+`cd` narration into it and back — always address files as
+`$repo_root/.claude/worktrees/$name/...`.
+
+### 2. Background agents: lock the worktree
+If you dispatch a long-running background agent to work in the tree, lock it so
+the pruner won't reclaim it mid-flight:
+
+```bash
+git worktree lock "$repo_root/.claude/worktrees/$name"
+```
+
+Unlock when the agent is done (`git worktree unlock <path>`).
+
+### 3. Do the work, then gate it
+Make your changes in the worktree. Before opening a PR, run the **pre-pr** skill
+inside the worktree — it runs lint, types, and tests so CI doesn't fail on
+arrival. Do not skip this; a red PR blocks the queue for every other agent.
+
+### 4. Commit, push, open the PR
+```bash
+git -C "$repo_root/.claude/worktrees/$name" add -A
+git -C "$repo_root/.claude/worktrees/$name" commit -m "feat: ..."
+git -C "$repo_root/.claude/worktrees/$name" push -u origin feat/$name
+gh pr create --head feat/$name --fill
+```
+
+### 5. Cleanup is automatic
+Once the PR merges, the `prune-merged-worktrees.sh` hook removes the worktree and
+deletes the local branch — at session start and immediately after any
+`gh pr merge`. You don't need to clean up by hand. It refuses to prune a tree
+that is locked, dirty, recently active, or lacks a merged PR, so it's safe to
+leave running.
+
+## Coordination rules for a fleet of agents
+
+- **One branch = one worktree = one concern.** Don't stack unrelated changes.
+- **Exempt files can be edited on `main`** (the hook allows them): `CLAUDE.md`,
+  `.claude/settings*`, `config/*.yaml`, `.gitignore`. A coordinating session may
+  touch these directly; feature work should not.
+- **Never force-push another agent's branch** and never merge a PR whose CI is
+  red or whose worktree is still locked.
+- **If two changes truly must land together**, say so in the PR body and merge in
+  dependency order — don't co-edit one branch from two sessions.
+
+## Output
+
+When you finish, report:
+
+```
+## Worktree Summary
+- Branch: feat/<name>
+- Worktree: .claude/worktrees/<name>
+- Pre-PR gate: PASS / FAIL — <detail>
+- PR: #<n> (<url>)
+- Cleanup: automatic on merge
+```

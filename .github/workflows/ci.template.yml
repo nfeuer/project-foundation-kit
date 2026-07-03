@@ -1,0 +1,68 @@
+# CI gate. Every job here must have a matching local step in the `pre-pr` skill,
+# so a green local gate means a green PR. Defaults assume Python + uv + ruff +
+# mypy + pytest; swap the run steps for your toolchain (Node: npm ci / eslint /
+# tsc --noEmit / npm test). Keep it fast — the point is a signal on every push.
+name: CI
+
+on:
+  push:
+    branches: ["**"]        # run on every branch so failures surface pre-PR
+  pull_request:
+    branches: [main]
+
+concurrency:
+  # Cancel superseded runs on the same ref — don't waste minutes on stale commits.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --dev
+      - run: uv run ruff check src/ tests/
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --dev
+      - run: uv run mypy src/
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --dev
+      # Fast lane: exclude slow + live-model tests from the per-push gate.
+      - run: uv run pytest tests/unit/ -m "not slow and not llm" --tb=short -q
+
+  # Optional: gate that eval fixtures still pass (mocked tools, no live models).
+  # eval:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #     - uses: astral-sh/setup-uv@v7
+  #     - uses: actions/setup-python@v6
+  #       with: { python-version: "3.12" }
+  #     - run: uv sync --dev
+  #     - run: uv run pytest tests/eval/ -m "not llm" -q

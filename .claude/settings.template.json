@@ -1,0 +1,60 @@
+{
+  "//": "Foundation-kit hook wiring. Copy to .claude/settings.json and adjust matchers/paths. $CLAUDE_PROJECT_DIR resolves to the repo root at hook time, so this file is portable across machines. The autoformat hook below assumes a Python/ruff project — swap the command for prettier/eslint/gofmt as appropriate.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/prune-merged-worktrees.sh\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=\"$CLAUDE_FILE_PATH\"; case \"$file\" in *.env|*credentials*.json|*token.json|*.pem|*.key|*secret*) echo 'BLOCKED: refusing to edit a secrets/credential file' >&2; exit 2;; esac"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/require-worktree.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "//": "Block a push or PR-create if the branch diff leaks a secret into a normal source file. The scanner exits 2 on a finding, which blocks the tool call.",
+            "type": "command",
+            "command": "cmd=$(cat | jq -r '.tool_input.command // empty' 2>/dev/null); if printf '%s' \"$cmd\" | grep -Eq 'git[[:space:]]+push|gh[[:space:]]+pr[[:space:]]+create'; then bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/secret-scan-diff.sh\"; fi"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=\"$CLAUDE_FILE_PATH\"; [[ \"$file\" == *.py ]] && ruff check --fix --quiet \"$file\" 2>/dev/null && ruff format --quiet \"$file\" 2>/dev/null; true"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-merge-prune.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

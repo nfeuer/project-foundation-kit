@@ -5,6 +5,8 @@ description: Run the project's drift and health checks on a cron and post a comp
 
 # Nightly Audit
 
+**Profile-driven.** Alert destination is `alerts.channel` / `alerts.target` in `.claude/kit.yaml`. Doc paths use `capabilities.docs.dir`. Spec-drift checks read `capabilities.spec.file` — if that key is empty, skip the spec-drift section entirely.
+
 Drift accumulates in the gaps between work sessions: docs fall behind code, spec
 sections go stale, follow-ups pile up, dependencies age into CVEs. This skill
 wraps the project's existing health machinery (doc-sync, spec-drift, dependency
@@ -42,7 +44,8 @@ otherwise apply the same checklist manually and collect findings. Record stale p
 names and broken link targets.
 
 ### 3. Check spec drift
-Dispatch the **spec-drift-checker** agent (or run the `spec-check` skill) against
+**Skipped when `capabilities.spec.file` is empty in `kit.yaml`.** Otherwise, dispatch
+the **spec-drift-checker** agent (or run the `spec-check` skill) against
 `main` to surface spec sections that may no longer match the implementation:
 
 ```bash
@@ -77,7 +80,7 @@ the digest — a link to the full `pip-audit` output is enough.
 
 ### 5. Count open follow-ups
 ```bash
-# Count open entries in docs/followups.md (entries not yet marked RESOLVED)
+# Count open entries in <docs.dir>/followups.md (capabilities.docs.dir from kit.yaml)
 python -c "
 import re, pathlib
 text = pathlib.Path('docs/followups.md').read_text()
@@ -106,6 +109,7 @@ Build the digest, omit all-clear sections, and post via webhook. Silence is a
 valid signal — do not post when there is nothing actionable:
 
 ```bash
+# kit.yaml → alerts.channel (discord | slack | none) and alerts.target (channel/webhook var)
 # Discord — swap URL and payload shape for Slack
 payload=$(python scripts/build_audit_digest.py \
   --spec-drift   "$spec_findings"  \

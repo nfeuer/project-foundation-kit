@@ -7,6 +7,9 @@ description: Watch the open-PR queue on an interval, rebase stale-but-green PRs 
 
 Use this as a recurring loop when a batch of PRs is in flight and the queue needs active tending. It keeps PRs in a mergeable state — rebasing stale ones, kicking CI back into motion, and pinging a human when only a human can unblock. It does **not** merge; it prepares.
 
+**Profile-driven.** The trunk branch for rebase commands comes from `trunk_branch` in
+`.claude/kit.yaml` (default: `main`). Update that one key to propagate the change here.
+
 Pair with the `/loop` skill for the interval mechanism (e.g. `/loop 10m pr-babysitter`). Hand CI failures to the `ci-watch` skill for the diagnose-fix-push loop. Before rebasing multiple stale PRs at once, run `branch-conflict-check` to find the safer rebase order.
 
 ## Workflow
@@ -24,7 +27,7 @@ Classify every open PR with this table, then execute the action column:
 | PR state | CI | `mergeable` | `reviewDecision` | Action |
 |---|---|---|---|---|
 | Up-to-date, all checks pass | Green | `MERGEABLE` | `APPROVED` | Ping human: ready to merge. |
-| Stale (behind main) | Green | `MERGEABLE` | any | Rebase onto main, push, hand to `ci-watch`. |
+| Stale (behind `trunk_branch`) | Green | `MERGEABLE` | any | Rebase onto `trunk_branch`, push, hand to `ci-watch`. |
 | Stale | Red | any | any | Rebase first, then hand to `ci-watch` for the fix loop. |
 | Up-to-date | Red | `MERGEABLE` | any | Hand to `ci-watch`. Do not rebase — that can hide the failure. |
 | Up-to-date | Green | `CONFLICTING` | any | Real merge conflict — ping human with the conflicting file list. |
@@ -34,13 +37,16 @@ Classify every open PR with this table, then execute the action column:
 
 ### 3. Rebase a stale PR
 ```bash
+# trunk_branch from kit.yaml (default: main)
 branch=<headRefName>
 git fetch origin main
 git switch "$branch"
 git rebase origin/main
 git push --force-with-lease
 ```
-`--force-with-lease` refuses to push if someone else updated the branch since your last fetch. Never use bare `--force`.
+Substitute `main` with `trunk_branch` from `.claude/kit.yaml` if your project
+overrides it. `--force-with-lease` refuses to push if someone else updated the
+branch since your last fetch. Never use bare `--force`.
 
 ### 4. Check for file-set conflicts before rebasing multiple stale PRs
 When two or more PRs are stale simultaneously, run **branch-conflict-check** (or `check.sh`) on each to find the safer rebase order. Rebase the depended-on PR first; let its CI green before rebasing anything that overlaps it.

@@ -1,0 +1,42 @@
+# Data-pipeline archetype — ETL, batch jobs, model training, or feature-engineering
+# pipelines. Migrations on (schema evolves with data contracts). Operational skills
+# active: nightly-audit, healthwatch. LLM optional — off by default; flip enabled
+# to true if the pipeline calls an LLM for labelling, summarisation, etc.
+
+preset: "data-pipeline"
+
+toolchain:
+  lint:             "uv run ruff check src/ tests/"
+  format:           "ruff format"
+  typecheck:        "uv run mypy src/"
+  test:             "uv run pytest tests/unit/ -m 'not slow' --tb=short -q"
+  test_integration: "uv run pytest tests/integration/ -m 'not slow' -q"
+  build:            ""
+  install:          "uv sync --dev"
+
+capabilities:
+  migrations:
+    enabled: true
+    heads_cmd: "uv run alembic heads"
+    versions_glob: "*/versions/*.py"
+  ui:
+    enabled: false
+    build_cmd: ""
+    typecheck_cmd: ""
+  llm:
+    enabled: false                     # flip to true + set eval_dir/spend_table if adding LLM
+    eval_dir: "fixtures"
+    spend_table: "invocation_log"
+  spec:
+    file: ""                           # set to your pipeline spec file if you have one
+    section_marker: "§"
+  docs:
+    enabled: true
+    dir: "docs"
+  coverage:
+    ratchet_enabled: true
+    baseline_file: ".coverage-baseline"
+
+alerts:
+  channel: "discord"                   # discord | slack | none
+  target: "#data-alerts"

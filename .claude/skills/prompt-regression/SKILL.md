@@ -5,6 +5,10 @@ description: When a PR touches a prompt template or model config, run the affect
 
 # Prompt Regression
 
+**Applies when** `capabilities.llm.enabled` is true (else skip, report N/A).
+
+**Profile-driven.** The fixture directory used in steps 3–4 is `capabilities.llm.eval_dir` from `.claude/kit.yaml` (default: `fixtures`).
+
 Prompt changes are code changes. A reworded instruction, a shifted few-shot
 example, or a model alias swap can quietly regress a tier that was passing.
 Run this skill whenever a PR modifies anything under `prompts/`, `config/`
@@ -33,6 +37,7 @@ entries reference the changed alias — those are all affected.
 ### 3. Run the eval-harness baseline (main branch)
 ```bash
 git stash   # or use a worktree if you can't stash cleanly
+# kit.yaml → capabilities.llm.eval_dir (fixture root)
 uv run pytest fixtures/<task_type>/ -m "eval" --tb=short -q 2>&1 | tee /tmp/baseline_<task_type>.txt
 git stash pop
 ```
@@ -41,6 +46,7 @@ instead of re-running — re-running is more trustworthy but costs tokens.
 
 ### 4. Run the eval-harness on the branch
 ```bash
+# kit.yaml → capabilities.llm.eval_dir (fixture root)
 uv run pytest fixtures/<task_type>/ -m "eval" --tb=short -q 2>&1 | tee /tmp/branch_<task_type>.txt
 ```
 Both runs MUST use mocked tools (no live API calls) for tiers 1–2. The

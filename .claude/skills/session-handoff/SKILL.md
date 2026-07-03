@@ -5,6 +5,8 @@ description: Write a tight durable state summary so a fresh session or another a
 
 # Session Handoff
 
+**Profile-driven.** The protected trunk branch is `trunk_branch` and worktree isolation lives under `worktree_dir` in `.claude/kit.yaml`; reference both in the handoff note so the next agent targets the right branch and worktree path.
+
 Run this when a long task is being interrupted — end of session, context
 window pressure, handing off to a parallel agent, or stepping away mid-slice.
 The goal is a **baton, not a report**: the minimum state a fresh agent needs
@@ -41,9 +43,9 @@ next line to write or the next test to pass?
 ### 4. Enumerate touched files and the active branch
 
 ```bash
-git diff main...HEAD --name-only   # files changed from main
+git diff main...HEAD --name-only   # files changed from trunk_branch (kit.yaml)
 git branch --show-current           # active branch
-git worktree list                   # if using worktrees
+git worktree list                   # worktrees live under worktree_dir (kit.yaml)
 ```
 
 ### 5. Summarize key decisions and their rationale
@@ -92,7 +94,7 @@ EOF
 ## Handoff — <task name / slice ID> — <timestamp>
 
 **Task:** <one sentence: what and why>
-**Branch:** <branch-name> [worktree: <path if applicable>]
+**Branch:** <branch-name> (trunk: `trunk_branch`) [worktree: <path under worktree_dir if applicable>]
 
 ### Done
 - <sub-task> — <commit SHA or PR #>

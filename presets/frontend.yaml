@@ -1,0 +1,42 @@
+# Frontend archetype — browser or mobile UI (React, Vue, Svelte, etc.).
+# npm/pnpm toolchain. Build + typecheck gates on. No migrations, no LLM.
+# Substitute pnpm/yarn commands if that's your package manager.
+# Alerts optional — flip channel to discord/slack once you have a webhook.
+
+preset: "frontend"
+
+toolchain:
+  lint:             "npm run lint"      # swap for: pnpm lint | yarn lint
+  format:           "npm run format"
+  typecheck:        "npm run typecheck" # typically: tsc --noEmit (via npm script)
+  test:             "npm test -- --run" # Vitest/Jest one-shot (no watch mode)
+  test_integration: ""
+  build:            "npm run build"     # must exit 0 for the gate to pass
+  install:          "npm install"       # swap for: pnpm install | yarn
+
+capabilities:
+  migrations:
+    enabled: false
+    heads_cmd: ""
+    versions_glob: ""
+  ui:
+    enabled: true
+    build_cmd:      "npm run build"
+    typecheck_cmd:  "npm run typecheck"
+  llm:
+    enabled: false
+    eval_dir: ""
+    spend_table: ""
+  spec:
+    file: ""                            # set to your design spec file if you have one
+    section_marker: "§"
+  docs:
+    enabled: true
+    dir: "docs"
+  coverage:
+    ratchet_enabled: true
+    baseline_file: ".coverage-baseline"
+
+alerts:
+  channel: "none"                       # switch to discord/slack once wired
+  target: ""

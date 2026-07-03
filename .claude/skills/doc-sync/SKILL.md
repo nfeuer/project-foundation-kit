@@ -5,6 +5,8 @@ description: Keep docs, spec, and code in lockstep in the same PR — update aff
 
 # Doc Sync
 
+**Profile-driven.** Narrative doc paths use `capabilities.docs.dir` from `.claude/kit.yaml` (default: `docs/`). Spec checks reference `capabilities.spec.file` — if that key is empty, steps 3 (cite/sync spec) and the citation gate are skipped.
+
 Documentation drifts the moment code changes and the docs don't. This skill runs
 at the end of a change (it's step 6–8 of the `pre-pr` gate) and closes the gap
 across three surfaces: **narrative docs**, the **canonical spec**, and the
@@ -21,12 +23,13 @@ This is the universal starting point — map each changed source file to the doc
 it affects.
 
 ### 2. Update narrative docs (hand-written)
-For each changed area, update the relevant hand-written pages:
-- `docs/domain/<subsystem>.md` — if behavior or data model changed.
-- `docs/workflows/<flow>.md` — if a user-facing flow changed.
-- `docs/operations/*` — if deployment, migrations, or monitoring changed.
-- `docs/changelog.md` — always, for a user-visible change.
-- `docs/troubleshooting.md` / `glossary.md` — if you introduced a new failure
+For each changed area, update the relevant hand-written pages under
+`capabilities.docs.dir` (default: `docs/`):
+- `<docs.dir>/domain/<subsystem>.md` — if behavior or data model changed.
+- `<docs.dir>/workflows/<flow>.md` — if a user-facing flow changed.
+- `<docs.dir>/operations/*` — if deployment, migrations, or monitoring changed.
+- `<docs.dir>/changelog.md` — always, for a user-visible change.
+- `<docs.dir>/troubleshooting.md` / `glossary.md` — if you introduced a new failure
   mode or domain term.
 
 **Never hand-edit generated pages** (`docs/reference/`, `docs/config/`,
@@ -37,8 +40,9 @@ Each domain page opens with a one-line summary and a `> Realizes: <spec> §X.Y`
 citation.
 
 ### 3. Cite and sync the spec
-Every design change cites the spec section it implements. If behavior now
-diverges from what the spec says:
+**Skipped when `capabilities.spec.file` is empty in `kit.yaml`.** Otherwise, every
+design change cites the spec section it implements (`capabilities.spec.file`). If
+behavior now diverges from what the spec says:
 - **In scope:** update the affected `§` in this same PR.
 - **Out of scope:** call it out explicitly in the PR body **and** log a follow-up
   (next step) with status `spec-update-pending`. Never let it drift silently.

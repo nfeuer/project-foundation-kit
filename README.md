@@ -6,26 +6,41 @@ human-and-machine-readable logging, doc/spec/drift sync, follow-up tracking, and
 a CI gate that agents keep green.**
 
 Distilled from a production AI-assistant codebase where these patterns were
-earned the hard way. Drop it into a new repo with the `new-project-bootstrap`
-skill and you start on a strong foundation instead of retrofitting one.
+earned the hard way. It **adapts to the project**: a single profile
+(`.claude/kit.yaml`) declares your toolchain and which capabilities apply, so the
+same kit serves a Python LLM service and a Go CLI without editing every skill. It
+works on **new and existing** repos alike.
 
 ## Install
 
-Point Claude at this kit and invoke the bootstrap skill:
+**New project** — point Claude at this kit and invoke bootstrap:
 
 ```
 /new-project-bootstrap
 ```
 
-It copies the hooks, skills, agents, CLAUDE.md, docs standard, follow-ups log,
-and CI into the target repo, then walks you through filling in the placeholders.
-Or copy pieces by hand — everything is standalone.
+It detects your stack (manifests, CI, Makefile), picks an archetype **preset**,
+writes `.claude/kit.yaml`, then installs the hooks, skills, agents, CLAUDE.md,
+docs standard, follow-ups log, and CI.
+
+**Existing project** — adopt non-destructively instead:
+
+```
+/adopt-existing-project
+```
+
+It audits what you already have, reports gaps ranked by leverage, and **merges**
+kit pieces in (append to your settings, add only missing CI jobs, never clobber
+your files) with a phased rollout you approve step by step.
+
+After either, run `/kit-doctor` to confirm everything is wired correctly.
 
 ## What's inside
 
 ```
 CLAUDE.template.md              Project-instructions template (the file loaded every session)
 .claude/
+  kit.yaml                      THE PROFILE — toolchain + capability toggles every skill reads
   settings.template.json        Hook wiring (portable via $CLAUDE_PROJECT_DIR)
   hooks/
     require-worktree.sh         Blocks edits on main → forces per-agent worktrees
@@ -33,18 +48,22 @@ CLAUDE.template.md              Project-instructions template (the file loaded e
     post-merge-prune.sh         Sweeps worktrees right after `gh pr merge`
     secret-scan-diff.sh         Blocks push/PR when a secret leaked into a source file
   skills/
-    new-project-bootstrap/      Install this kit into a repo
+    new-project-bootstrap/      Greenfield install: detect stack → write kit.yaml → scaffold
+    adopt-existing-project/     Brownfield install: audit → gap report → non-destructive merge
+    kit-doctor/                 Verify an install is correctly wired (never modifies)
+    kit-update/                 Propagate source-kit improvements to an adopted project
     parallel-work/              Worktree isolation for concurrent Claude sessions
     pre-pr/                     Local gate mirroring CI — green locally = green PR
     ci-watch/                   Watch a PR's CI and fix failures until green
     branch-conflict-check/      Warn when another open PR touches the same files (+ check.sh)
     pr-babysitter/              Loop over the open-PR queue: rebase, re-run CI, ping on blockers
     migration-check/            Catch destructive/irreversible DB migrations before merge
-    test-gap → see agents       (test-gap-analyzer agent, gated from pre-pr)
+    coverage-ratchet/           Fail a PR that drops coverage below the baseline (one-way floor)
     prompt-regression/          Re-run eval fixtures when a prompt/model change lands
     eval-harness/               Tiered, version-controlled fixtures for fuzzy behavior
     observability-check/        Verify a change is debuggable before merge
     doc-sync/                   Update docs + spec + follow-ups in the same PR
+    adr/                        Record an Architecture Decision when a non-obvious choice is made
     followup-tracking/          Durable log for deferred work and accepted drift
     cost-check/                 Query spend vs daily/monthly budget + projection
     session-handoff/            Baton note so another session/agent can resume
@@ -52,14 +71,20 @@ CLAUDE.template.md              Project-instructions template (the file loaded e
     incident-capture/           Auto-open a pre-filled incident note on repeated fallbacks
   agents/
     observability-reviewer.md   Audits a diff for silent failures + missing logging
+    security-reviewer.md        Audits a diff for injection, auth bypass, credential/token leaks
     spec-drift-checker.md       Flags spec sections that drifted from the code
     docs-updater.md             Updates affected narrative docs for a branch
     test-gap-analyzer.md        Finds untested new/changed code paths, ranked by risk
     config-consistency-checker.md  Validates cross-file config refs all resolve
     dependency-auditor.md       Flags outdated/vulnerable deps across Python/Node/system
     codebase-onboarder.md       Generates an orientation doc for an unfamiliar repo
+presets/                        Archetype starting profiles: library / service / llm-app / frontend / data-pipeline
 docs/
+  PROFILE.md                    How the kit.yaml profile works and how skills consume it
+  PRESETS.md                    The five archetypes and how to pick one
   DOCS_STANDARD.md              Hand-written vs generated split + sync discipline
+  COMMIT_CONVENTION.md          Conventional-commit format (feeds changelog automation)
+  PII_LOGGING_CHECKLIST.md      What never to log; how to handle user data in structured logs
   followups.template.md         The follow-ups log format
 templates/
   logging_setup.py              Structured logging: dual-render, correlation context
@@ -68,7 +93,10 @@ templates/
   healthwatch.py                Heartbeat + transition-alert health-watcher sidecar
   eval_fixture.example.json     The eval fixture shape
   incident_note.template.md     Fill-in incident write-up
-.github/workflows/ci.template.yml   Lint + types + tests gate
+  adr.template.md               Architecture Decision Record template
+.github/
+  workflows/ci.template.yml     Lint + types + tests gate
+  pull_request_template.md      PR checklist: spec cite, test evidence, risk + rollback
 ```
 
 ## The core ideas
@@ -102,9 +130,10 @@ queue without auto-merging) · `pre-pr` + `ci-watch` (green locally, kept green)
 
 **Quality gates** — catch expensive mistakes before merge.
 `migration-check` (destructive/irreversible schema ops) · `test-gap-analyzer`
-(untested new paths, risk-ranked) · `prompt-regression` (eval deltas on prompt/
-model changes) · `config-consistency-checker` (dangling config refs) ·
-`secret-scan-diff.sh` (keys leaked into source, blocks push/PR).
+(untested new paths, risk-ranked) · `coverage-ratchet` (coverage can't drop) ·
+`prompt-regression` (eval deltas on prompt/model changes) · `security-reviewer`
+(injection, auth bypass, credential/token leaks) · `config-consistency-checker`
+(dangling config refs) · `secret-scan-diff.sh` (keys leaked into source).
 
 **Observability & evaluation** — make behavior debuggable and measurable.
 `observability-check` + `observability-reviewer` (no silent failures, logging at
@@ -113,13 +142,19 @@ decision points) · `eval-harness` (tiered fixtures) · `cost-check` + `cost_gua
 (the reference patterns).
 
 **Docs, spec & memory** — stop drift and lost context.
-`doc-sync` + `docs-updater` · `spec-drift-checker` · `followup-tracking` ·
-`session-handoff` (baton note between sessions).
+`doc-sync` + `docs-updater` · `spec-drift-checker` · `adr` (decision records) ·
+`followup-tracking` · `session-handoff` (baton note between sessions).
 
 **Operations & safety** — standing signals, not one-off checks.
 `nightly-audit` (cron the drift/health checks → morning digest) ·
 `incident-capture` (auto-open an incident note on repeated fallbacks) ·
 `dependency-auditor` · `healthwatch.py` (heartbeat sidecar) · `codebase-onboarder`.
+
+**Adapt & maintain the kit itself** — make it fit the project and stay current.
+`new-project-bootstrap` / `adopt-existing-project` (greenfield vs brownfield
+install) · the `kit.yaml` profile + `presets/` (one file drives the toolchain and
+capability toggles every skill reads) · `kit-doctor` (verify the wiring) ·
+`kit-update` (pull source-kit improvements without clobbering local changes).
 
 ### Ideas not yet built (good next candidates)
 
@@ -132,10 +167,26 @@ decision points) · `eval-harness` (tiered fixtures) · `cost-check` + `cost_gua
 - **Data/replica sync health** — for a primary + replica setup, verify the
   write-through sync isn't lagging or dropping rows.
 
-## Adapting it
+## Adapting it — the profile
 
-The defaults assume Python + `uv` + `ruff` + `mypy` + `pytest` + `structlog` +
-GitHub + `gh`. Every piece is language-agnostic in intent — swap the concrete
-commands (autoformat hook, CI steps, `pre-pr` steps, logging library) for your
-stack. The hooks are portable across machines via `$CLAUDE_PROJECT_DIR`; they
-degrade gracefully (no `gh`, no auth → they no-op rather than error).
+The kit's defaults read like a Python + `uv` + `ruff` + `mypy` + `pytest` +
+`structlog` + `gh` project, but you never edit skills to change that. One file —
+`.claude/kit.yaml` — declares the toolchain commands and capability toggles, and
+every skill reads from it (see `docs/PROFILE.md`):
+
+- **Toolchain commands** are tagged in each skill (`# kit.yaml → toolchain.test`).
+  The literal shown is the default; the profile overrides it. An empty string
+  means "skip that step." So a Node project sets `toolchain.test: "npm test"` once
+  and `pre-pr`/`ci-watch` follow.
+- **Capability toggles** gate whole skills. `capabilities.llm.enabled: false`
+  drops the eval/prompt-regression/cost gates; `capabilities.migrations.enabled:
+  false` drops migration-check — reported N/A, no edits.
+- **Presets** (`presets/*.yaml`) are archetype starting points — `library`,
+  `service`, `llm-app`, `frontend`, `data-pipeline` — so a new project inherits a
+  sensible profile and only the skills that fit.
+
+Bootstrap **detects** most of the profile from the repo; `adopt-existing-project`
+**recovers** it from an existing repo's CI/Makefile rather than imposing defaults.
+`kit-doctor` then confirms every profile command actually runs and every hook is
+wired. The hooks are portable via `$CLAUDE_PROJECT_DIR` and degrade gracefully
+(no `gh`/auth → they no-op rather than error).

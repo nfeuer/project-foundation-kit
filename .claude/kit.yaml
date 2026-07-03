@@ -1,0 +1,55 @@
+# Project profile — the single source of truth the kit's skills and hooks read.
+# Bootstrap detects most of this from the repo; edit anything it got wrong.
+# Skills reference these keys by dotted path (e.g. `toolchain.test`). A skill
+# step tagged `# kit.yaml → toolchain.test` means: run the command from this
+# file if set, else the literal default shown in the skill.
+#
+# Capability toggles gate whole skills: when `capabilities.migrations.enabled`
+# is false, the migration-check step is skipped and reported N/A. This is how one
+# kit serves a Python LLM service and a Go CLI without editing every skill.
+
+kit_version: "1.0.0"        # stamp; `kit-update` compares this against the source kit
+preset: "llm-app"           # library | service | llm-app | frontend | data-pipeline | custom
+
+# --- Git / concurrency ---
+trunk_branch: "main"        # branch the worktree-isolation hook protects
+worktree_dir: ".claude/worktrees"
+
+# --- Toolchain: the commands every gate runs. Empty string ("") = skip the step.
+toolchain:
+  lint:             "uv run ruff check src/ tests/"
+  format:           "ruff format"
+  typecheck:        "uv run mypy src/"
+  test:             "uv run pytest tests/unit/ -m 'not slow and not llm' --tb=short -q"
+  test_integration: "uv run pytest tests/integration/ -m 'not slow and not llm' -q"
+  build:            ""      # e.g. "uv build" or a frontend build; empty → no build gate
+  install:          "uv sync --dev"
+
+# --- Capabilities: toggles that enable/disable capability-specific skills ---
+capabilities:
+  migrations:
+    enabled: true
+    heads_cmd: "uv run alembic heads"     # must report exactly one head
+    versions_glob: "*/versions/*.py"      # where migration-check greps for destructive ops
+  ui:
+    enabled: false
+    build_cmd: ""
+    typecheck_cmd: ""
+  llm:
+    enabled: true            # gates eval-harness, prompt-regression, cost-check
+    eval_dir: "fixtures"
+    spend_table: "invocation_log"
+  spec:
+    file: "spec_v3.md"       # "" → disable spec-drift / citation checks
+    section_marker: "§"
+  docs:
+    enabled: true
+    dir: "docs"
+  coverage:
+    ratchet_enabled: true    # block PRs that drop coverage below the baseline
+    baseline_file: ".coverage-baseline"
+
+# --- Alerts: where nightly-audit / incident-capture / fallback alerts post ---
+alerts:
+  channel: "discord"         # discord | slack | none
+  target: "#project-debug"   # channel name or webhook env var

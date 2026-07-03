@@ -5,6 +5,8 @@ description: Capture deferred decisions, accepted drift, and cross-cutting TODOs
 
 # Follow-up Tracking
 
+**Profile-driven.** The followups file lives at `<docs.dir>/followups.md`, where `docs.dir` is `capabilities.docs.dir` from `.claude/kit.yaml` (default: `docs`).
+
 A TODO in a code comment is invisible the moment the PR merges. This skill keeps
 deferred work in one durable, greppable place — `docs/followups.md` — so it gets
 addressed on purpose later instead of being rediscovered by accident. Run it when
@@ -22,7 +24,7 @@ What does *not* belong: a bug (file it / fix it), or work you'll do in this same
 PR (just do it).
 
 ## Entry format
-Append to `docs/followups.md`. Every entry has a stable ID so design docs and
+Append to `<docs.dir>/followups.md` (`capabilities.docs.dir` from `kit.yaml`, default: `docs`). Every entry has a stable ID so design docs and
 commit messages can reference it:
 
 ```markdown

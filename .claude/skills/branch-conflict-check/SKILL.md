@@ -7,13 +7,18 @@ description: Detect file-level overlap between the current branch and every othe
 
 Run this when you open a PR or any time you want to verify merge safety. It answers: _"which other open PRs touch the same files I do?"_ The `parallel-work` skill prevents live worktree collisions; this is the complement — it prevents the merge-time collisions that slip through when two PRs land on the same path days apart.
 
+**Profile-driven.** The base branch for diff commands is `trunk_branch` in `.claude/kit.yaml`
+(default: `main`). `check.sh` reads the same value automatically.
+
 ## Workflow
 
 ### 1. Get this branch's changed files
 ```bash
+# trunk_branch from kit.yaml (default: main)
 git diff main...HEAD --name-only
 ```
-Replace `main` with your base branch if it differs (`master`, `develop`, etc.).
+`trunk_branch` in `.claude/kit.yaml` sets the default base; replace `main` in the
+command above with that value if you have overridden it.
 
 ### 2. List other open PRs
 ```bash
@@ -25,7 +30,8 @@ gh pr list --state open --json number,headRefName,url
 gh pr view <n> --json files --jq '.files[].path'
 ```
 
-Or run the bundled helper, which does all three steps and prints overlaps grouped by PR:
+Or run the bundled helper, which does all three steps and prints overlaps grouped by PR
+(`check.sh` reads `trunk_branch` from `.claude/kit.yaml` as its default base):
 ```bash
 bash .claude/skills/branch-conflict-check/check.sh [base-branch]
 ```
@@ -56,7 +62,7 @@ When uncertain: merge the smaller or less-dependent PR first, then rebase the ot
 ```
 ## Branch Conflict Check
 - Branch: <current-branch>
-- Base: <main/master>
+- Base: <trunk_branch from .claude/kit.yaml>
 - Changed files on this branch: <N>
 - Other open PRs checked: <K>
 

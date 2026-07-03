@@ -1,0 +1,42 @@
+# Service archetype — deployed backend service (API, daemon, worker).
+# Migrations on. Operational skills active: nightly-audit, incident-capture,
+# healthwatch. No LLM capabilities. Alerts wired to a channel — change
+# target to your actual Discord/Slack channel or webhook env var.
+
+preset: "service"
+
+toolchain:
+  lint:             "uv run ruff check src/ tests/"
+  format:           "ruff format"
+  typecheck:        "uv run mypy src/"
+  test:             "uv run pytest tests/unit/ -m 'not slow' --tb=short -q"
+  test_integration: "uv run pytest tests/integration/ -m 'not slow' -q"
+  build:            ""                  # Docker build is usually in CI, not a local gate
+  install:          "uv sync --dev"
+
+capabilities:
+  migrations:
+    enabled: true
+    heads_cmd: "uv run alembic heads"   # must report exactly one head
+    versions_glob: "*/versions/*.py"
+  ui:
+    enabled: false
+    build_cmd: ""
+    typecheck_cmd: ""
+  llm:
+    enabled: false                      # flip to true and set eval_dir if you add LLM calls
+    eval_dir: ""
+    spend_table: ""
+  spec:
+    file: ""                            # set to your canonical spec file if you have one
+    section_marker: "§"
+  docs:
+    enabled: true
+    dir: "docs"
+  coverage:
+    ratchet_enabled: true
+    baseline_file: ".coverage-baseline"
+
+alerts:
+  channel: "discord"                    # discord | slack | none
+  target: "#ops-alerts"                 # channel name or webhook env var

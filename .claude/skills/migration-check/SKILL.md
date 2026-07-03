@@ -5,6 +5,10 @@ description: Catch dangerous DB schema migrations before they hit the primary DB
 
 # Migration Check
 
+**Applies when** `capabilities.migrations.enabled` is true (else skip, report N/A).
+
+**Profile-driven.** The migration tool command comes from `capabilities.migrations.heads_cmd` and the file-path glob from `capabilities.migrations.versions_glob` in `.claude/kit.yaml`; edit the profile to adapt to Flyway, Prisma, or any other tool.
+
 Run this **as part of pre-pr** whenever a PR touches `*/versions/*` (Alembic) or
 any equivalent migration directory. Its job is to stop a destructive or
 un-reversible migration from reaching the primary DB and, for projects that
@@ -20,12 +24,14 @@ recover from. Catch these locally, not mid-deploy.
 
 ### 1. Identify new migration files in this branch
 ```bash
+# path glob: capabilities.migrations.versions_glob
 git diff main...HEAD --name-only -- '*/versions/*'
 ```
 If the output is empty, this skill is done — no migration files changed.
 
 ### 2. Confirm exactly one migration head
 ```bash
+# kit.yaml → capabilities.migrations.heads_cmd
 uv run alembic heads
 ```
 More than one head means two branches added migrations independently and neither

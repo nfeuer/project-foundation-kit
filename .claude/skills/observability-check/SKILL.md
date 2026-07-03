@@ -50,6 +50,14 @@ produces a line an engineer can scan; the JSON renderer (prod) produces the same
 fields for the pipeline. Don't log opaque blobs or stringified dicts where
 structured fields belong.
 
+### 7. PII & logging hygiene
+Never log secrets, API tokens, or PII (names, email addresses, phone numbers,
+message content) in structured log fields. Redact or omit user-supplied content
+before it reaches the logging layer. Temporary debug fields must be removed
+before merge; respect the project's retention policy for any fields that do
+land in persistent storage. See `docs/PII_LOGGING_CHECKLIST.md` for the full
+checklist.
+
 ## Output
 ```
 ## Observability Review
@@ -58,5 +66,6 @@ structured fields belong.
 - Correlation context: <flows / missing at ...>
 - External-call telemetry: <complete / missing latency|cost at ...>
 - New failure modes alertable: <yes / add panel|alert for ...>
+- PII & logging hygiene: <clean / issues: ...>
 - Verdict: PASS / FIX NEEDED — <items>
 ```

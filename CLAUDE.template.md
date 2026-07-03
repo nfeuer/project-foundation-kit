@@ -52,8 +52,12 @@ when a rule seems arbitrary, this is what justifies it.>
 - `tests/` — Unit + integration tests.
 - `fixtures/` — Version-controlled evaluation fixtures.
 - `.claude/` — Skills, agents, and hooks (worktree isolation, autoformat).
+- `.claude/kit.yaml` — **Project profile.** Declares this repo's toolchain
+  commands and capability toggles; the kit's skills read from it. See
+  `docs/PROFILE.md`.
 - `docs/followups.md` — Deferred decisions, accepted drift, and cross-cutting
   follow-ups. Append here; don't let TODOs rot in code.
+- `docs/decisions/` — Architecture Decision Records (`adr` skill).
 
 ## Budget / Limits (if applicable)
 - <e.g. $100/month hard cap on the LLM API; $20/day pause threshold.>
@@ -80,6 +84,10 @@ when a rule seems arbitrary, this is what justifies it.>
 - **No silent failures.** Every `try/except` that falls back to a default or
   degraded path must emit a `fallback_activated` log event (and notify the debug
   channel where wired). Never `contextlib.suppress(Exception)` a real error.
+- **Never log secrets or PII** in structured fields — log references, not
+  payloads. See `docs/PII_LOGGING_CHECKLIST.md`.
+- **Commits** follow `type(scope): subject` (see `docs/COMMIT_CONVENTION.md`).
+- **Non-obvious design choices** get an ADR (`adr` skill), not just a code comment.
 
 ## Documentation & Spec Sync
 > This is what keeps docs, spec, and code from drifting apart. Keep it.
@@ -99,6 +107,7 @@ when a rule seems arbitrary, this is what justifies it.>
 
 ## Definition of Done
 A change is done when: tests/lint/types are green locally (`pre-pr` skill),
-docs affected by the change are updated, the spec is cited (and updated or a
-follow-up logged), no new silent-failure paths were introduced, and the PR's CI
-is green.
+new/changed code paths are tested and coverage didn't drop, any change to auth /
+secrets / user input / external calls passed security review, docs affected by
+the change are updated, the spec is cited (and updated or a follow-up logged), no
+new silent-failure paths were introduced, and the PR's CI is green.

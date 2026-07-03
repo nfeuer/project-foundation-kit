@@ -5,6 +5,8 @@ description: When a component fires fallback_activated (or crashes) repeatedly i
 
 # Incident Capture
 
+**Profile-driven.** Alert destination is `alerts.channel` / `alerts.target` in `.claude/kit.yaml`. The SQLite fallback queries below use the table named by `capabilities.llm.spend_table` (default: `invocation_log`); substitute if your project differs.
+
 A single `fallback_activated` event is expected; three in fifteen minutes is an
 incident. This skill detects the repetition pattern, gathers the correlated log
 context and the recent commits touching the component, writes an incident note
@@ -29,7 +31,7 @@ logcli query \
   --since=15m --output=jsonl \
   | jq -s 'length'
 
-# SQLite fallback
+# SQLite fallback — table: capabilities.llm.spend_table (kit.yaml)
 sqlite3 donna_tasks.db "
   SELECT COUNT(*) FROM invocation_log
   WHERE event_type = 'fallback_activated'
@@ -63,7 +65,7 @@ logcli query \
   | jq -r '"\(.ts)  [\(.correlation_id // "no-id")]  \(.error)  → fallback: \(.fallback)"' \
   | head -20
 
-# SQLite fallback
+# SQLite fallback — table: capabilities.llm.spend_table (kit.yaml)
 sqlite3 -csv donna_tasks.db "
   SELECT created_at, correlation_id, error, fallback
   FROM   invocation_log
@@ -108,7 +110,7 @@ skill if the incident uncovers deferred work.
 Send a brief alert to the debug/ops channel with a direct link to the note:
 
 ```bash
-# Discord — swap for Slack ($SLACK_WEBHOOK_URL, "text" field) as needed
+# kit.yaml → alerts.channel / alerts.target (destination; swap URL/payload for Slack)
 curl -sX POST "$DISCORD_WEBHOOK_URL" \
   -H 'Content-Type: application/json' \
   -d "$(jq -n \

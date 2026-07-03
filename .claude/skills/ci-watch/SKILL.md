@@ -12,7 +12,11 @@ re-pushes and watches again. The `pre-pr` skill should catch most of this
 locally; this is the backstop for the environment-specific failures that only
 surface in CI (missing lockfile entry, OS-specific test, cache mismatch).
 
-Work in the PR's worktree the whole time. Never fix CI by editing `main`.
+**Profile-driven.** Toolchain commands referenced below (lint, types, tests, install) come
+from `.claude/kit.yaml`; the literals shown are the defaults for a Python/uv project.
+
+Work in the PR's worktree the whole time. Never fix CI by editing the `trunk_branch`
+(read from `.claude/kit.yaml`, default: `main`).
 
 ## Workflow
 
@@ -38,13 +42,17 @@ gh run view "$run_id" --log-failed
 Use the **systematic-debugging** skill. Read the actual error — don't
 pattern-match to a fix. Map the failure to its cause:
 
-| CI job failed | Reproduce locally | Typical fix |
+> Reproduce-locally commands below are the defaults; substitute the value from the
+> matching key in `.claude/kit.yaml` if your project overrides it:
+> `toolchain.lint` / `toolchain.typecheck` / `toolchain.test` / `toolchain.install`.
+
+| CI job failed | Reproduce locally (`kit.yaml` key) | Typical fix |
 |---|---|---|
-| lint (ruff) | `ruff check src/ tests/` | `ruff check --fix`, then hand-fix the rest |
-| types (mypy) | `mypy src/` | add/repair annotations; don't `# type: ignore` to silence |
-| tests | `pytest <the failing node id>` | fix the code or the test — establish which is wrong first |
-| build | run the build command | missing dep in lockfile, bad import path |
-| lockfile drift | `uv lock` / `npm install` | commit the regenerated lockfile |
+| lint (ruff) | `ruff check src/ tests/` (`toolchain.lint`) | `ruff check --fix`, then hand-fix the rest |
+| types (mypy) | `mypy src/` (`toolchain.typecheck`) | add/repair annotations; don't `# type: ignore` to silence |
+| tests | `pytest <the failing node id>` (`toolchain.test`) | fix the code or the test — establish which is wrong first |
+| build | run the build command (`toolchain.build`) | missing dep in lockfile, bad import path |
+| lockfile drift | `uv lock` / `npm install` (`toolchain.install`) | commit the regenerated lockfile |
 
 Reproduce the failure locally first. A fix you can't reproduce failing is a fix
 you can't verify.
@@ -68,7 +76,8 @@ thrashing wastes CI minutes. Escalate with the logs rather than guessing again.
   wrong — and if it is, say so explicitly in the commit and PR body.
 - **Don't disable a CI job** to get green. Fix the cause.
 - **A flaky test is a finding, not a nuisance.** If a test passes on re-run with
-  no code change, log it in `docs/followups.md` rather than silently moving on.
+  no code change, log it in the follow-ups file (`docs/followups.md` by default)
+  rather than silently moving on.
 
 ## Output
 ```

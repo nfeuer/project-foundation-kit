@@ -5,6 +5,10 @@ description: Query the invocation/spend log for current API spend vs daily and m
 
 # Cost Check
 
+**Applies when** `capabilities.llm.enabled` is true (else skip, report N/A).
+
+**Profile-driven.** The spend table is `capabilities.llm.spend_table` from `.claude/kit.yaml` (default: `invocation_log`). Substitute that name in every query below if your project uses a different value.
+
 Run this any time you want to know where the project stands against its API
 budget before triggering expensive work, or after a run that felt heavy. It
 reads directly from the `invocation_log` table — the same source `BudgetGuard`
@@ -26,6 +30,7 @@ DB="${DONNA_DB:-donna_tasks.db}"
 ### 2. Today's total spend
 
 ```bash
+# kit.yaml → capabilities.llm.spend_table (replace invocation_log below if different)
 sqlite3 "$DB" "
 SELECT printf('Today  \$%.4f', COALESCE(SUM(cost_usd), 0.0))
 FROM invocation_log

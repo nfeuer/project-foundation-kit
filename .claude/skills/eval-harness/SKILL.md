@@ -5,6 +5,10 @@ description: Set up and run tiered, version-controlled evaluation fixtures for n
 
 # Eval Harness
 
+**Applies when** `capabilities.llm.enabled` is true (else skip, report N/A).
+
+**Profile-driven.** The fixture root directory is `capabilities.llm.eval_dir` from `.claude/kit.yaml` (default: `fixtures`).
+
 Unit tests check deterministic code. This skill covers the parts that don't have
 one right answer — anything backed by a model, a classifier, or a fuzzy
 extractor. The pattern: version-controlled fixtures, tiered by difficulty, scored
@@ -15,7 +19,8 @@ asserted.
 
 ## Structure
 
-Fixtures live at `fixtures/<task_type>/tier<N>_<name>.json`, one file per tier.
+Fixtures live at `<eval_dir>/<task_type>/tier<N>_<name>.json`, one file per tier
+(where `eval_dir` = `capabilities.llm.eval_dir` from `kit.yaml`, default: `fixtures`).
 See `templates/eval_fixture.example.json` for the shape. Each file declares a
 `pass_gate` (fraction of cases that must pass) and a list of `cases`, each with
 an `input`, an `expected` output, and optional `tool_mocks` for offline runs.

@@ -87,7 +87,7 @@ budget:
 # --- Release automation (release skill) ---
 release:
   changelog_file: "docs/changelog.md"
-  auto_tag: false            # false → stop at the changelog diff + proposed version
+  auto_tag: true             # tag + draft GitHub release after changelog review; false → stop at the changelog diff + proposed version
   require_spec_citations: true   # warn on release-worthy commits with no § citation
 
 # --- Flaky-test triage (flaky-triage skill) ---

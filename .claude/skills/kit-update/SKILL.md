@@ -10,6 +10,13 @@ that already adopted it. It diffs kit-managed files one by one, classifies each
 change, and applies only what is safe to apply without your input. Anything the
 project customized comes to you for review. **Always dry-run first.**
 
+**Progress ledger.** An apply run prompts per file and can be interrupted —
+keep a ledger at `.claude/scratch/kit-update-ledger.md` (see
+`docs/PROGRESS_LEDGER.md`): record each file's classification and, during
+apply, each per-file decision (`applied` / `kept project version` / `skipped`)
+as you go. On resume, do not re-ask for files already decided. Delete the
+ledger after Step 7.
+
 You need two paths:
 
 - **Source kit** — the foundation-kit repo (default: `~/project-foundation-kit`

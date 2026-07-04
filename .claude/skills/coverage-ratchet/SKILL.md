@@ -37,6 +37,13 @@ Parse the total line coverage percentage from `coverage.json` → `.totals.perce
 | Current == baseline | PASS — no action needed. |
 | Current > baseline | PASS — offer to ratchet the baseline UP to the new value. Never lower it automatically. |
 
+**Strictness** (`gates.strictness` in `kit.yaml`, see `docs/PROFILE.md`):
+at `prototype`, a drop is reported as `ADVISORY` instead of FAIL and does not
+block the PR — the numbers are informational until there is a baseline worth
+defending. At `production`, `ratchet_enabled: true` with a missing baseline
+file is a FAIL rather than a first-run bootstrap — generate the baseline before
+gating.
+
 To ratchet up: write the new percentage (two decimal places) to the baseline
 file and stage it:
 ```bash

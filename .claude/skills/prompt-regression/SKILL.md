@@ -71,6 +71,9 @@ silent tradeoff is not an accepted one.
 
 - A prompt change that regresses a gated tier (pass_gate not met on branch)
   **blocks the PR**. Fix the prompt or lower the expectation and document why.
+  Exception: at `prototype` strictness (`gates.strictness` in `kit.yaml`), the
+  delta is reported as `ADVISORY` instead of blocking — but still reported;
+  a prompt change without a score delta is never acceptable.
 - Model alias changes that touch a gated task_type follow the same rule.
 - If fixtures for the affected task_type don't exist yet, treat that as a P0
   gap: create tier-1 baseline fixtures before merging the prompt change.

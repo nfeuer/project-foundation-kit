@@ -5,6 +5,9 @@
 
 preset: "data-pipeline"
 
+gates:
+  strictness: "standard"    # raise to "production" once downstream consumers rely on the data
+
 toolchain:
   lint:             "uv run ruff check src/ tests/"
   format:           "ruff format"

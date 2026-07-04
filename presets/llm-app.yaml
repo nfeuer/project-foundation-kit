@@ -5,6 +5,9 @@
 
 preset: "llm-app"
 
+gates:
+  strictness: "standard"    # raise to "production" once real users depend on it
+
 toolchain:
   lint:             "uv run ruff check src/ tests/"
   format:           "ruff format"

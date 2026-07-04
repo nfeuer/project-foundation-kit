@@ -10,6 +10,12 @@ otherwise get bolted on late (or never): concurrent-agent isolation, no-silent-
 failure logging, a spec/doc/drift sync loop, follow-up tracking, an eval harness,
 and a CI gate that agents keep green. Run this once per new project.
 
+**Progress ledger.** This is a long multi-step install — keep a ledger at
+`.claude/scratch/new-project-bootstrap-ledger.md` (see `docs/PROGRESS_LEDGER.md`):
+check for an existing ledger before starting (resume at the first non-DONE
+step), update it after every step below, and delete it when the final report is
+emitted.
+
 ## Workflow
 
 ### 1. Detect the stack
@@ -117,6 +123,12 @@ Fall back to `*/versions/*.py` only when `alembic.ini` is absent. For
 `toolchain.format`, use the same runner prefix as the rest of the toolchain — on a
 `uv` project write `uv run ruff format`, not bare `ruff format`.
 
+Gate strictness: on a brand-new repo (no users, no baselines), set
+`gates.strictness: "prototype"` with a
+`# TODO: graduate to "standard" once there is a baseline worth defending`
+annotation. On a repo that already ships to users, use `"standard"`. See
+`docs/PROFILE.md` for what each level changes.
+
 ### 4. Install the `.claude/` scaffolding
 
 ```bash
@@ -125,8 +137,8 @@ cp    "$KIT/.claude/settings.template.json" "$DEST/.claude/settings.json"
 cp -r "$KIT/.claude/skills/"*              "$DEST/.claude/skills/"
 cp -r "$KIT/.claude/agents/"*              "$DEST/.claude/agents/"
 chmod +x "$DEST/.claude/hooks/"*.sh
-mkdir -p "$DEST/.claude/worktrees"
-printf '%s\n' '.claude/worktrees/' >> "$DEST/.gitignore"
+mkdir -p "$DEST/.claude/worktrees" "$DEST/.claude/scratch"
+printf '%s\n' '.claude/worktrees/' '.claude/scratch/' >> "$DEST/.gitignore"
 ```
 
 Adjust `settings.json`: keep the worktree + secret-guard hooks as-is; swap the
@@ -143,6 +155,7 @@ principles as non-negotiables. This file loads into every session — make it co
 ```bash
 cp "$KIT/docs/DOCS_STANDARD.md"      "$DEST/docs/DOCS_STANDARD.md"
 cp "$KIT/docs/followups.template.md" "$DEST/docs/followups.md"
+mkdir -p "$DEST/docs/solutions"      # compound-learnings entries land here
 ```
 
 Run the `doc-sync` skill in `init` mode to scaffold the docs taxonomy from the

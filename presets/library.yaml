@@ -5,6 +5,9 @@
 
 preset: "library"
 
+gates:
+  strictness: "standard"    # prototype | standard | production — see docs/PROFILE.md
+
 toolchain:
   lint:             "uv run ruff check src/ tests/"
   format:           "ruff format"

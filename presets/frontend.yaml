@@ -5,6 +5,9 @@
 
 preset: "frontend"
 
+gates:
+  strictness: "standard"    # prototype | standard | production — see docs/PROFILE.md
+
 toolchain:
   lint:             "npm run lint"      # swap for: pnpm lint | yarn lint
   format:           "npm run format"

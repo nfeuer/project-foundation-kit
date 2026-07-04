@@ -36,6 +36,24 @@ convention, not a templating engine:
 3. **Named values.** `trunk_branch`, `worktree_dir`, `alerts.channel`, and
    `capabilities.spec.file` are read wherever a skill or hook needs them.
 
+## Gate strictness — ceremony scales with maturity
+
+`gates.strictness` sets how hard the quality gates push, so a weekend prototype
+and a production service can run the same kit without either drowning in
+ceremony or shipping unguarded. Three levels:
+
+| Level | Behavior |
+|---|---|
+| `prototype` | The *trend* gates — `coverage-ratchet`, `perf-budget`, and eval pass-gates in `prompt-regression` — run and **report** but never block a PR. There is no baseline worth defending yet; the numbers are informational. Hard-safety gates are unaffected: secrets scan, `migration-check`, and security review **always block** at every level. |
+| `standard` | The documented default behavior of every gate. Regressions block; warnings warn. |
+| `production` | Warnings harden into failures: a ratchet enabled with no baseline file blocks instead of warning, perf paths with sparse data (<20 observations) block instead of passing annotated, and `pre-pr` runs the security review on **every** diff rather than only ones touching sensitive surfaces. |
+
+Skills read the level once at the start of a run. A skill that changes behavior
+by level says so in its body ("At `prototype` strictness…"); a skill that
+doesn't mention strictness behaves identically at all levels. Move the level up
+deliberately — bootstrap starts brand-new repos at `prototype` with a TODO to
+graduate, and presets default to `standard`.
+
 ## Where the profile comes from
 
 - **New projects:** `new-project-bootstrap` detects the stack (probes for

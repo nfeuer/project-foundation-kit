@@ -1,0 +1,71 @@
+# CI for the kit repo itself — validates the kit's own artifacts (the ci.template.yml
+# under templates/ is the workflow projects COPY, not one that runs here). This
+# dogfoods the kit's philosophy: the repo enforces its own quality gate.
+name: kit-ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install YAML parser
+        run: pip install --quiet pyyaml
+
+      - name: YAML parses (profile, presets, template workflow)
+        run: |
+          python - <<'PY'
+          import glob, yaml, sys
+          files = [".claude/kit.yaml", "templates/ci.template.yml"] + glob.glob("presets/*.yaml")
+          bad = False
+          for f in files:
+              try:
+                  yaml.safe_load(open(f)); print("ok  ", f)
+              except Exception as e:
+                  print("FAIL", f, e); bad = True
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: JSON parses (settings + fixtures)
+        run: |
+          python - <<'PY'
+          import json, sys
+          bad = False
+          for f in [".claude/settings.template.json", "templates/eval_fixture.example.json"]:
+              try:
+                  json.load(open(f)); print("ok  ", f)
+              except Exception as e:
+                  print("FAIL", f, e); bad = True
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: Python templates compile
+        run: |
+          python -m py_compile templates/*.py && echo "all templates compile"
+
+      - name: Shell hooks are syntactically valid
+        run: |
+          fail=0
+          for s in .claude/hooks/*.sh .claude/skills/*/*.sh; do
+            [ -f "$s" ] || continue
+            if bash -n "$s"; then echo "ok   $s"; else echo "FAIL $s"; fail=1; fi
+          done
+          exit $fail
+
+      - name: Every skill and agent has YAML frontmatter
+        run: |
+          fail=0
+          for m in .claude/skills/*/SKILL.md .claude/agents/*.md; do
+            if head -1 "$m" | grep -q '^---$'; then echo "ok   $m"; else echo "NO FRONTMATTER $m"; fail=1; fi
+          done
+          exit $fail

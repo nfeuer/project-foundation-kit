@@ -151,7 +151,7 @@ repo's structure and git log.
 ### 7. Install CI
 
 ```bash
-cp "$KIT/.github/workflows/ci.template.yml" "$DEST/.github/workflows/ci.yml"
+cp "$KIT/templates/ci.template.yml" "$DEST/.github/workflows/ci.yml"
 ```
 
 Edit the run steps to the real toolchain commands (same values as `kit.yaml`).

@@ -101,7 +101,8 @@ templates/
   adr.template.md               Architecture Decision Record template
   flaky-tests.template.md       The quarantined-flaky-test registry
 .github/
-  workflows/ci.template.yml     Lint + types + tests gate
+  workflows/kit-ci.yml          The kit's own CI (validates profile/skills/hooks/templates)
+templates/ci.template.yml       Lint + types + tests gate that projects copy to .github/workflows/ci.yml
   pull_request_template.md      PR checklist: spec cite, test evidence, risk + rollback
 ```
 

@@ -36,6 +36,19 @@ capabilities:
   coverage:
     ratchet_enabled: true
     baseline_file: ".coverage-baseline"
+  perf:
+    enabled: true                       # traffic-bearing → guard p95 regressions
+    source: "log"
+    baseline_file: ".perf-baseline"
+    tolerance_pct: 10
+    budgets: {}                         # fill with {operation: p95_ms} for hot paths
+  replica:
+    enabled: false                      # flip on if you run a primary + replica; set tables
+    primary: ""
+    replica: ""
+    tables: []
+    lag_threshold_s: 300
+    parity_tolerance: 0
 
 alerts:
   channel: "discord"                    # discord | slack | none

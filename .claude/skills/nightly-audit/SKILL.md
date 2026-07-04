@@ -94,6 +94,12 @@ Flag if the count grew since the previous digest (compare to a cached value or
 yesterday's git blame on `docs/followups.md`). See the `followup-tracking` skill
 for the entry format and stable ID convention.
 
+Also report the **quarantined flaky-test** count and their age from
+`flaky.registry` (default `docs/flaky-tests.md`) — a quarantine is a loan, so the
+digest is where it's kept visible. Flag any quarantined test older than a
+threshold or missing an owning follow-up. If `capabilities.replica.enabled` is
+true, include the latest **sync-health** result (lag + parity) in the digest too.
+
 ### 6. Check CI status on main
 ```bash
 gh run list --branch main --limit 10 \

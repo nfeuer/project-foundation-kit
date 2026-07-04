@@ -48,8 +48,36 @@ capabilities:
   coverage:
     ratchet_enabled: true    # block PRs that drop coverage below the baseline
     baseline_file: ".coverage-baseline"
+  perf:
+    enabled: false           # gates the perf-budget PR gate; on for traffic-bearing services
+    source: "log"            # "log" (read latency_ms from spend_table) | "benchmark" (run benchmark_cmd)
+    benchmark_cmd: ""        # command that emits per-operation latencies as JSON (source: benchmark)
+    baseline_file: ".perf-baseline"
+    tolerance_pct: 10        # allowed p95 regression before the gate fails
+    budgets: {}              # map of operation-name → p95_ms budget, e.g. {llm_call: 4000}
+  replica:
+    enabled: false           # gates sync-health; on when a primary + replica exist
+    primary: ""              # connection ref / path to the primary datastore
+    replica: ""              # connection ref to the replica
+    tables: []               # key tables to check for lag + row-count parity
+    lag_threshold_s: 300     # replication lag (seconds) that trips an alert
+    parity_tolerance: 0      # allowed row-count delta before it's a gap
 
 # --- Alerts: where nightly-audit / incident-capture / fallback alerts post ---
 alerts:
   channel: "discord"         # discord | slack | none
   target: "#project-debug"   # channel name or webhook env var
+
+# --- Release automation (release skill) ---
+release:
+  changelog_file: "docs/changelog.md"
+  auto_tag: false            # false → stop at the changelog diff + proposed version
+  require_spec_citations: true   # warn on release-worthy commits with no § citation
+
+# --- Flaky-test triage (flaky-triage skill) ---
+flaky:
+  rerun_count: 5             # times to re-run a suspect test to confirm flakiness
+  flaky_threshold: 0.8       # pass-rate below this (and >0) = flaky, not a real failure
+  marker: "flaky"            # test marker used to quarantine (excluded from the gating run)
+  quarantine_allowed: true   # false → flaky is a hard stop, no quarantine loan
+  registry: "docs/flaky-tests.md"

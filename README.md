@@ -59,16 +59,20 @@ CLAUDE.template.md              Project-instructions template (the file loaded e
     pr-babysitter/              Loop over the open-PR queue: rebase, re-run CI, ping on blockers
     migration-check/            Catch destructive/irreversible DB migrations before merge
     coverage-ratchet/           Fail a PR that drops coverage below the baseline (one-way floor)
+    perf-budget/                Fail a PR that regresses a hot path past its p95 budget
     prompt-regression/          Re-run eval fixtures when a prompt/model change lands
     eval-harness/               Tiered, version-controlled fixtures for fuzzy behavior
     observability-check/        Verify a change is debuggable before merge
     doc-sync/                   Update docs + spec + follow-ups in the same PR
     adr/                        Record an Architecture Decision when a non-obvious choice is made
     followup-tracking/          Durable log for deferred work and accepted drift
+    flaky-triage/               Confirm, log, and quarantine flaky tests (a visible loan)
     cost-check/                 Query spend vs daily/monthly budget + projection
     session-handoff/            Baton note so another session/agent can resume
+    release/                    Conventional-commits → changelog + semver bump + tagged release
     nightly-audit/              Cron the drift/health checks → morning chat digest
     incident-capture/           Auto-open a pre-filled incident note on repeated fallbacks
+    sync-health/                Verify a primary+replica aren't lagging or dropping rows
   agents/
     observability-reviewer.md   Audits a diff for silent failures + missing logging
     security-reviewer.md        Audits a diff for injection, auth bypass, credential/token leaks
@@ -90,10 +94,12 @@ templates/
   logging_setup.py              Structured logging: dual-render, correlation context
   fallback_alert.py             No-silent-failure fallback alerting
   cost_guard.py                 Pre-call budget guardrail (log-every-call, check-before-call)
+  perf_budget.py                Runtime timing guard: alerts when an op blows its p95 budget
   healthwatch.py                Heartbeat + transition-alert health-watcher sidecar
   eval_fixture.example.json     The eval fixture shape
   incident_note.template.md     Fill-in incident write-up
   adr.template.md               Architecture Decision Record template
+  flaky-tests.template.md       The quarantined-flaky-test registry
 .github/
   workflows/ci.template.yml     Lint + types + tests gate
   pull_request_template.md      PR checklist: spec cite, test evidence, risk + rollback
@@ -131,9 +137,10 @@ queue without auto-merging) · `pre-pr` + `ci-watch` (green locally, kept green)
 **Quality gates** — catch expensive mistakes before merge.
 `migration-check` (destructive/irreversible schema ops) · `test-gap-analyzer`
 (untested new paths, risk-ranked) · `coverage-ratchet` (coverage can't drop) ·
-`prompt-regression` (eval deltas on prompt/model changes) · `security-reviewer`
-(injection, auth bypass, credential/token leaks) · `config-consistency-checker`
-(dangling config refs) · `secret-scan-diff.sh` (keys leaked into source).
+`perf-budget` (p95 can't regress) · `prompt-regression` (eval deltas on prompt/
+model changes) · `security-reviewer` (injection, auth bypass, credential/token
+leaks) · `config-consistency-checker` (dangling config refs) · `secret-scan-diff.sh`
+(keys leaked into source) · `flaky-triage` (flaky tests confirmed + quarantined).
 
 **Observability & evaluation** — make behavior debuggable and measurable.
 `observability-check` + `observability-reviewer` (no silent failures, logging at
@@ -145,9 +152,10 @@ decision points) · `eval-harness` (tiered fixtures) · `cost-check` + `cost_gua
 `doc-sync` + `docs-updater` · `spec-drift-checker` · `adr` (decision records) ·
 `followup-tracking` · `session-handoff` (baton note between sessions).
 
-**Operations & safety** — standing signals, not one-off checks.
-`nightly-audit` (cron the drift/health checks → morning digest) ·
-`incident-capture` (auto-open an incident note on repeated fallbacks) ·
+**Release & operations** — standing signals and clean releases.
+`release` (conventional commits → changelog + semver + tag) · `nightly-audit`
+(cron the drift/health checks → morning digest) · `incident-capture` (auto-open an
+incident note on repeated fallbacks) · `sync-health` (primary+replica lag/parity) ·
 `dependency-auditor` · `healthwatch.py` (heartbeat sidecar) · `codebase-onboarder`.
 
 **Adapt & maintain the kit itself** — make it fit the project and stay current.
@@ -155,17 +163,6 @@ decision points) · `eval-harness` (tiered fixtures) · `cost-check` + `cost_gua
 install) · the `kit.yaml` profile + `presets/` (one file drives the toolchain and
 capability toggles every skill reads) · `kit-doctor` (verify the wiring) ·
 `kit-update` (pull source-kit improvements without clobbering local changes).
-
-### Ideas not yet built (good next candidates)
-
-- **Release / changelog automation** — assemble the changelog from merged PRs +
-  their spec citations; tag and draft release notes.
-- **Flaky-test quarantine** — track tests that pass on re-run with no code change;
-  auto-file a follow-up and optionally quarantine until fixed.
-- **Latency/performance budget** — flag when a hot path or model call regresses
-  past a p95 threshold, the perf analogue of the cost guardrail.
-- **Data/replica sync health** — for a primary + replica setup, verify the
-  write-through sync isn't lagging or dropping rows.
 
 ## Adapting it — the profile
 

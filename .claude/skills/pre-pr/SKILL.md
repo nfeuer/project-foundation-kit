@@ -65,7 +65,14 @@ Run the **coverage-ratchet** skill to confirm the PR does not drop coverage belo
 the stored baseline (`.coverage-baseline`). A regression blocks the PR; an
 accepted dip requires an updated baseline and a note in the follow-ups log.
 
-### 7. Migrations
+### 7. Performance budget
+**Applies when** `capabilities.perf.enabled` is true. If false, skip and mark N/A.
+
+Run the **perf-budget** skill to confirm no budgeted hot path or model call
+regressed past its p95 tolerance versus the baseline. A regression blocks the PR;
+an accepted change requires an updated `.perf-baseline` and a follow-up note.
+
+### 8. Migrations
 **Applies when** `capabilities.migrations.enabled` is true. If false, skip and mark N/A.
 
 ```bash
@@ -76,7 +83,7 @@ Then run the **migration-check** skill — it catches destructive/irreversible o
 (dropped columns, non-nullable-without-default, narrowing) before they reach the
 primary DB and any replica. More than one head means a merge migration is needed.
 
-### 8. Build / typecheck any UI
+### 9. Build / typecheck any UI
 **Applies when** `capabilities.ui.enabled` is true. If false, skip and mark N/A.
 
 ```bash
@@ -89,7 +96,7 @@ primary DB and any replica. More than one head means a merge migration is needed
 ```
 Run the frontend build and typecheck so a broken UI doesn't slip through.
 
-### 9. Build artifact
+### 10. Build artifact
 **Applies when** `toolchain.build` is non-empty. If empty, skip and mark N/A.
 
 ```bash
@@ -97,37 +104,37 @@ Run the frontend build and typecheck so a broken UI doesn't slip through.
 <build-command>
 ```
 
-### 10. Secrets scan
+### 11. Secrets scan
 Run the **secret-scan-diff.sh** hook over the branch diff to catch keys/tokens
 pasted into ordinary source files (the edit-time guard only covers credential
 *files*). Any hit blocks the PR until removed and rotated.
 
-### 11. Docs sync
+### 12. Docs sync
 Dispatch the **docs-updater** agent (or run the `doc-sync` skill) to update any
 docs affected by the change. Narrative docs, changelog, and the API reference
 must not drift from the code in the same PR.
 
-### 12. Spec + drift
+### 13. Spec + drift
 Run the **spec-check** skill (or dispatch **spec-drift-checker**). Every design
 change must cite the spec section it implements, and any behavior that diverges
 from the spec must either update the spec in this PR or be logged in the
 follow-ups file with a reason.
 
-### 13. Prompt regression (if the change touches a prompt or model config)
+### 14. Prompt regression (if the change touches a prompt or model config)
 Run the **prompt-regression** skill — re-run the affected task_type's eval
 fixtures and confirm no gated tier regressed. An accepted score tradeoff must be
 logged as a follow-up.
 
-### 14. Follow-ups
+### 15. Follow-ups
 Scan your diff for TODOs, deferred decisions, and accepted drift. Append them to
 the follow-ups log (`doc-sync` skill / `docs/followups.md`). Close any follow-up
 this PR resolves.
 
-### 15. Branch-conflict check
+### 16. Branch-conflict check
 Run the **branch-conflict-check** skill to see whether another open PR touches the
 same files. If so, coordinate merge order before opening this one.
 
-### 16. Working tree
+### 17. Working tree
 ```bash
 git status --porcelain   # expect empty after commit
 ```
@@ -147,6 +154,7 @@ conditional gates `N/A` when they don't apply:
 - [ ] Test coverage: <no gaps / N new untested paths>
 - [ ] Security review: <clean / N findings addressed / N/A>
 - [ ] Coverage ratchet: <pass / dropped N% below baseline / N/A>
+- [ ] Performance budget: <within budget / regressed <path> / N/A>
 - [ ] Migrations: <1 head, safe / N/A>
 - [ ] UI build + types: <clean / N/A>
 - [ ] Build: <clean / N/A>

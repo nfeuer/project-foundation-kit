@@ -187,3 +187,7 @@ Bootstrap **detects** most of the profile from the repo; `adopt-existing-project
 `kit-doctor` then confirms every profile command actually runs and every hook is
 wired. The hooks are portable via `$CLAUDE_PROJECT_DIR` and degrade gracefully
 (no `gh`/auth → they no-op rather than error).
+
+## License
+
+MIT — see [LICENSE](LICENSE). Use it, fork it, adapt it to your own projects.

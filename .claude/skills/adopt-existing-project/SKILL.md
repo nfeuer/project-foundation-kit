@@ -40,19 +40,100 @@ kit's expected set: lint, typecheck, test, migration-heads, secrets-scan.
 ```bash
 ls .claude/ 2>/dev/null || echo "no .claude dir"
 cat .claude/settings.json 2>/dev/null || echo "no settings.json"
-ls .claude/hooks/ 2>/dev/null || echo "no hooks"
 ```
-Record which hooks are present (`require-worktree`, `secret-scan-diff`,
+Hook detection follows `settings.json` — a repo may keep hook scripts under
+`scripts/hooks/`, `.claude/hooks/`, or any other directory and wire them via
+`$CLAUDE_PROJECT_DIR` or absolute paths in `settings.json`. Do **not** assume
+`.claude/hooks/` is the canonical location.
+
+```bash
+# Extract every hook command string from settings.json and resolve .sh paths
+python3 - <<'PY'
+import json, os, sys
+
+try:
+    data = json.load(open(".claude/settings.json"))
+except Exception as e:
+    print(f"no settings.json or parse error: {e}"); sys.exit(0)
+
+# Walk the nested hooks structure: hooks.<Event>[{matcher, hooks:[{command}]}]
+cmds = []
+for hook_list in data.get("hooks", {}).values():
+    for entry in (hook_list if isinstance(hook_list, list) else []):
+        for h in (entry.get("hooks", []) if isinstance(entry, dict) else []):
+            cmd = h.get("command", "") if isinstance(h, dict) else ""
+            if cmd:
+                cmds.append(cmd)
+
+if not cmds:
+    print("no hook commands found in settings.json")
+    sys.exit(0)
+
+print(f"{len(cmds)} hook command(s) found")
+for cmd in cmds:
+    for token in cmd.split():
+        if token.endswith(".sh"):
+            resolved = token.replace("$CLAUDE_PROJECT_DIR", ".") \
+                            .replace("${CLAUDE_PROJECT_DIR}", ".")
+            exists = os.path.isfile(resolved)
+            executable = os.access(resolved, os.X_OK) if exists else False
+            status = "executable" if executable else \
+                     ("NOT EXECUTABLE" if exists else "MISSING")
+            print(f"  {token} -> {status}")
+PY
+```
+Record which named hooks are wired (`require-worktree`, `secret-scan-diff`,
 `prune-merged-worktrees`, `post-merge-prune`, autoformat). Note any custom
 hooks the repo has added — those must be preserved.
+
+```bash
+# P4: Portability — flag absolute paths in hook commands.
+# Paths not anchored to $CLAUDE_PROJECT_DIR break on any other machine.
+python3 - <<'PY'
+import json, re, sys
+
+try:
+    data = json.load(open(".claude/settings.json"))
+except Exception:
+    sys.exit(0)
+
+cmds = []
+for hook_list in data.get("hooks", {}).values():
+    for entry in (hook_list if isinstance(hook_list, list) else []):
+        for h in (entry.get("hooks", []) if isinstance(entry, dict) else []):
+            cmd = h.get("command", "") if isinstance(h, dict) else ""
+            if cmd:
+                cmds.append(cmd)
+
+gaps = []
+for cmd in cmds:
+    for token in cmd.split():
+        if re.match(r'^[/~]', token) and '$CLAUDE_PROJECT_DIR' not in token:
+            gaps.append((token, cmd[:80]))
+
+if gaps:
+    for path, cmd_excerpt in gaps:
+        print(f"  PORTABILITY GAP: absolute path '{path}'")
+        print(f"    in command: {cmd_excerpt!r}")
+        print(f"    -> use $CLAUDE_PROJECT_DIR/... for cross-machine portability")
+else:
+    print("no absolute paths in hook commands")
+PY
+```
+Absolute paths in hook commands are a portability gap — record any found above
+in the gap report (Phase 2).
 
 #### 1.3 Docs taxonomy
 ```bash
 ls docs/ 2>/dev/null || echo "no docs dir"
+# followups.md may live at a non-standard path — search the whole tree
+find . -name 'followups.md' -not -path '*/.git/*' | head
 ```
-Check for: `docs/DOCS_STANDARD.md`, `docs/followups.md`, subdirs matching the
-kit's taxonomy (`architecture/`, `domain/`, `workflows/`, `operations/`,
-`reference/`). Note any existing structure — adopt around it, don't erase it.
+Check for: `docs/DOCS_STANDARD.md`, a `followups.md` anywhere in the tree
+(may be at `docs/superpowers/specs/followups.md` or another non-standard path),
+subdirs matching the kit's taxonomy (`architecture/`, `domain/`, `workflows/`,
+`operations/`, `reference/`). Note any existing structure — adopt around it,
+don't erase it.
 
 #### 1.4 Test, lint, and type config
 ```bash
@@ -122,6 +203,11 @@ exact skill or hook that closes it.
 
 Populate the table from the actual audit — omit rows where the repo already
 satisfies the criterion. Reorder by actual leverage for this repo.
+
+If §1.2 detected absolute paths in hook commands, add a row:
+**Hook commands use absolute paths** | hardcoded `/home/…` or `/mnt/…` paths
+in `settings.json` hook commands | replace with `$CLAUDE_PROJECT_DIR/…` in
+each affected command string | Low.
 
 ---
 
@@ -263,10 +349,12 @@ correct command. Installing the wrong formatter silently reformats code.
 - Repo: <name> | Trunk: <branch> | Stack: <language + package manager>
 - Preset inferred: <preset>
 - CI system: <GitHub Actions / GitLab CI / none> | Jobs found: <list>
-- .claude/ present: <yes — hooks: <list> | no>
-- settings.json: <present (N hooks) | absent>
+- .claude/ present: <yes | no>
+- settings.json: <present (N hook commands) | absent>
+- Hooks wired (from settings.json): <list — each: executable / NOT EXECUTABLE / MISSING | none>
+- Absolute paths in hook commands: <none | list of portability gaps>
 - CLAUDE.md: <present | absent>
-- Docs: <dir present — DOCS_STANDARD: yes/no, followups: yes/no | absent>
+- Docs: <dir present — DOCS_STANDARD: yes/no, followups: yes/no (path if non-standard) | absent>
 - Spec file: <path | none detected>
 - Toolchain detected: lint=<cmd>, typecheck=<cmd>, test=<cmd>, install=<cmd>
 - Candidate kit.yaml: <printed above — review and confirm>

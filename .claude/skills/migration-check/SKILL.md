@@ -27,7 +27,10 @@ recover from. Catch these locally, not mid-deploy.
 # path glob: capabilities.migrations.versions_glob
 git diff main...HEAD --name-only -- '*/versions/*'
 ```
-If the output is empty, this skill is done — no migration files changed.
+If the output is empty, this skill is done — report `New migration files: none — done`
+and skip steps 2–6.
+
+> Only continue with steps 2–6 when step 1 found at least one file.
 
 ### 2. Confirm exactly one migration head
 ```bash
@@ -43,10 +46,11 @@ commit the result before opening the PR.
 # List new files
 NEW=$(git diff main...HEAD --name-only -- '*/versions/*')
 
-# Flag any file where downgrade() contains only 'pass'
-for f in $NEW; do
-  grep -A 5 'def downgrade' "$f" | grep -q 'pass' && echo "TRIVIAL DOWNGRADE: $f"
-done
+# Flag any file where downgrade() body is only 'pass' (anchored to avoid false positives
+# on comments containing "bypass", "password", etc.)
+while IFS= read -r f; do
+  grep -A 5 'def downgrade' "$f" | grep -qE '^[[:space:]]*pass[[:space:]]*$' && echo "TRIVIAL DOWNGRADE: $f"
+done <<< "$NEW"
 ```
 A `pass`-body `downgrade()` is not a downgrade — it is a trap. If rolling back
 is genuinely impossible, that must be an explicit comment with a documented

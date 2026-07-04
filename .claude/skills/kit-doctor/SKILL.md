@@ -93,14 +93,55 @@ unless the missing thing is a binary — a binary miss is **FAIL**.
 
 ### 4. Hooks are executable
 
-Every `.sh` file under `.claude/hooks/` must have the executable bit set.
+Every `.sh` hook script referenced in `settings.json` must have the executable
+bit set. Do **not** assume scripts live under `.claude/hooks/` — a repo may
+wire hooks from `scripts/hooks/` or any other directory via `settings.json`.
+Fall back to scanning `.claude/hooks/` for any scripts present but not wired.
 
 ```bash
-find .claude/hooks -name '*.sh' ! -executable -print
+python3 - <<'PY'
+import json, os, glob, sys
+
+not_exec = []
+checked = set()
+
+# Primary: follow settings.json to discover all wired hook scripts
+try:
+    data = json.load(open(".claude/settings.json"))
+    for hook_list in data.get("hooks", {}).values():
+        for entry in (hook_list if isinstance(hook_list, list) else []):
+            for h in (entry.get("hooks", []) if isinstance(entry, dict) else []):
+                cmd = h.get("command", "") if isinstance(h, dict) else ""
+                for token in cmd.split():
+                    if token.endswith(".sh"):
+                        resolved = token.replace("$CLAUDE_PROJECT_DIR", ".") \
+                                        .replace("${CLAUDE_PROJECT_DIR}", ".")
+                        if resolved in checked:
+                            continue
+                        checked.add(resolved)
+                        if not os.path.isfile(resolved):
+                            not_exec.append(f"{resolved} (MISSING)")
+                        elif not os.access(resolved, os.X_OK):
+                            not_exec.append(resolved)
+except FileNotFoundError:
+    pass
+
+# Secondary: also scan .claude/hooks/ for scripts present but not wired
+for path in glob.glob(".claude/hooks/*.sh"):
+    if path not in checked:
+        checked.add(path)
+        if not os.access(path, os.X_OK):
+            not_exec.append(path)
+
+for p in not_exec:
+    print("FAIL not executable:", p)
+if not not_exec:
+    print("OK - all discovered hook scripts are executable")
+PY
 ```
 
-Any file listed is a FAIL. This is the check that would have caught a hook
-deployed without `chmod +x` and silently never firing.
+Any FAIL here means the hook fires (if wired in `settings.json`) but cannot
+execute — it will silently never block. Fix with `chmod +x <path>`.
 
 ### 5. Hooks are referenced in settings.json
 
@@ -134,8 +175,82 @@ it does **not** end with `; true`, `|| true`, or `exit 0` unconditionally after
 a failure-prone command. Swallowed exit codes mean the hook fires but never
 blocks. Report each suspicious pattern as WARN with the line number.
 
+Also check inline hook `command` strings in `settings.json`: flag any whose
+**final top-level operator** is `|| true` or `; true` — this swallows the
+hook's own exit code. Caveat: `|| true` used only to capture grep output into a
+variable is a false positive; flag only when `|| true` or `; true` is the
+terminal operation of the entire command string.
+
 ```bash
-grep -n '; true\||| true' .claude/hooks/*.sh 2>/dev/null
+# Check hook script files discovered via settings.json + .claude/hooks/
+python3 - <<'PY'
+import json, os, glob
+
+checked = set()
+script_paths = []
+
+try:
+    data = json.load(open(".claude/settings.json"))
+    for hook_list in data.get("hooks", {}).values():
+        for entry in (hook_list if isinstance(hook_list, list) else []):
+            for h in (entry.get("hooks", []) if isinstance(entry, dict) else []):
+                cmd = h.get("command", "") if isinstance(h, dict) else ""
+                for token in cmd.split():
+                    if token.endswith(".sh"):
+                        resolved = token.replace("$CLAUDE_PROJECT_DIR", ".") \
+                                        .replace("${CLAUDE_PROJECT_DIR}", ".")
+                        if resolved not in checked:
+                            checked.add(resolved)
+                            script_paths.append(resolved)
+except FileNotFoundError:
+    pass
+
+for path in glob.glob(".claude/hooks/*.sh"):
+    if path not in checked:
+        script_paths.append(path)
+
+found = False
+for path in script_paths:
+    if not os.path.isfile(path):
+        continue
+    with open(path) as fh:
+        for i, line in enumerate(fh, 1):
+            stripped = line.rstrip()
+            if "; true" in stripped or "|| true" in stripped:
+                print(f"WARN {path}:{i}: {stripped}")
+                found = True
+if not found:
+    print("OK - no swallowed exit codes in hook scripts")
+PY
+
+# Also check inline command strings in settings.json for terminal exit suppression
+python3 - <<'PY'
+import json, re, sys
+
+try:
+    data = json.load(open(".claude/settings.json"))
+except FileNotFoundError:
+    sys.exit(0)
+
+cmds = []
+for hook_list in data.get("hooks", {}).values():
+    for entry in (hook_list if isinstance(hook_list, list) else []):
+        for h in (entry.get("hooks", []) if isinstance(entry, dict) else []):
+            cmd = h.get("command", "") if isinstance(h, dict) else ""
+            if cmd:
+                cmds.append(cmd)
+
+found = False
+for cmd in cmds:
+    # Flag when the FINAL top-level operation suppresses the exit code.
+    if re.search(r'(\|\| *true|; *true)\s*$', cmd.rstrip()):
+        print(f"WARN inline hook command ends with exit-suppressing operator:")
+        print(f"  {cmd[:120]!r}")
+        print(f"  (caveat: || true inside a variable assignment is a false positive — review manually)")
+        found = True
+if not found:
+    print("OK - no exit-suppressing operators at end of inline hook commands")
+PY
 ```
 
 ### 7. worktree_dir is gitignored

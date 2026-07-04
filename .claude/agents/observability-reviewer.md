@@ -42,6 +42,14 @@ For new background loops or integrations: is there a supervised exit path that
 logs + alerts, and a way (dashboard/alert/`event_type`) for a human to notice?
 Flag background tasks that can die quietly.
 
+## Search hygiene
+
+- Broad `grep` and `find` must prune stale and generated trees to avoid false positives.
+- Always pass `--exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}` (or the `find -prune` equivalent).
+```bash
+grep -r ... --exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}
+```
+
 ## How to Review
 1. `git diff main...HEAD --name-only` to scope the change.
 2. Run the silent-failure grep above across the diff.

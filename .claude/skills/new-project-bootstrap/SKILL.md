@@ -18,8 +18,13 @@ Probe the repo root for manifests, CI, and Makefile. Do not guess — let the re
 answer.
 
 ```bash
-# Language / manifest
+# Language / manifest (root)
 ls pyproject.toml package.json go.mod Cargo.toml 2>/dev/null
+
+# UI sub-project — scan subdirs for a nested package.json (Python root + JS sub-app pattern)
+find . -maxdepth 3 -name package.json ! -path '*/node_modules/*' \
+  | grep -v '^\./package\.json'
+# Record any subdir paths returned — used when writing capabilities.ui in step 3
 
 # Lock files (disambiguate npm vs pnpm vs yarn)
 ls package-lock.json pnpm-lock.yaml yarn.lock 2>/dev/null
@@ -36,8 +41,8 @@ git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null \
 ```
 
 Record: language, package manager, the exact lint/format/typecheck/test/build
-commands, and the trunk branch name. Flag any command not yet present — you will
-need it for step 3.
+commands, the trunk branch name, and any subdirectory `package.json` paths found.
+Flag any command not yet present — you will need it for step 3.
 
 ### 2. Select a preset
 
@@ -77,6 +82,40 @@ cp "$KIT/presets/<chosen>.yaml" "$DEST/.claude/kit.yaml"
 Review the written file before continuing. Every non-empty `toolchain.*` command
 must actually exist in the repo. Every capability toggle must match what is
 installed.
+
+UI sub-project: if step 1 found a `package.json` in a subdirectory (e.g.
+`donna-ui/`), set `capabilities.ui.enabled: true` and derive `build_cmd` /
+`typecheck_cmd` from that subdir's `scripts` block — prefix each with
+`cd <subdir> &&` so it runs from the repo root. Set `typecheck_cmd` only if a
+`tsc`, `typecheck`, or `type-check` script entry exists; otherwise leave it empty.
+
+```bash
+# Inspect the sub-project's available scripts
+python3 -c "import json; s=json.load(open('<subdir>/package.json')).get('scripts',{}); [print(k,':', v) for k,v in s.items()]"
+```
+
+Ratchet guards: set `capabilities.coverage.ratchet_enabled: true` ONLY if
+`.coverage-baseline` already exists in the repo; otherwise write `false` with a
+`# TODO: run the baseline command, then flip on` annotation. Apply the same guard
+to `capabilities.perf.enabled` against `.perf-baseline`. Enabling a ratchet with
+no baseline makes kit-doctor WARN on every run immediately after install.
+
+```bash
+[ -f .coverage-baseline ] || echo "  ratchet_enabled: false  # TODO: generate baseline, then flip to true"
+[ -f .perf-baseline ]     || echo "  perf.enabled: false     # TODO: generate baseline, then flip to true"
+```
+
+Migration glob: derive `capabilities.migrations.versions_glob` from `alembic.ini`'s
+`script_location` rather than using the preset wildcard `*/versions/*.py`.
+
+```bash
+grep -E '^script_location\s*=' alembic.ini 2>/dev/null | cut -d= -f2 | tr -d ' '
+# e.g. "alembic" → set versions_glob: "alembic/versions/*.py"
+```
+
+Fall back to `*/versions/*.py` only when `alembic.ini` is absent. For
+`toolchain.format`, use the same runner prefix as the rest of the toolchain — on a
+`uv` project write `uv run ruff format`, not bare `ruff format`.
 
 ### 4. Install the `.claude/` scaffolding
 

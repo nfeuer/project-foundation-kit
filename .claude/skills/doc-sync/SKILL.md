@@ -13,6 +13,14 @@ across three surfaces: **narrative docs**, the **canonical spec**, and the
 **follow-ups log**. Read `docs/DOCS_STANDARD.md` for the taxonomy before you
 start.
 
+## Search hygiene
+
+- Broad `grep` and `find` must prune stale and generated trees to avoid false positives.
+- Always pass `--exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}` (or the `find -prune` equivalent).
+```bash
+grep -r ... --exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}
+```
+
 ## Workflow
 
 ### 1. Diff the branch

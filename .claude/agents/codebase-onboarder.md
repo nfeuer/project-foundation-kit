@@ -41,6 +41,14 @@ Identify 5–10 files that together give the clearest picture of the system. Bia
 toward the module that owns the core loop or orchestrator, the config contract,
 the data model, and the test for the most important path.
 
+## Search hygiene
+
+- Broad `grep` and `find` must prune stale and generated trees to avoid false positives.
+- Always pass `--exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}` (or the `find -prune` equivalent).
+```bash
+grep -r ... --exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}
+```
+
 ## How to Review
 
 1. Read `README.md`, `CLAUDE.md` (or equivalent), and `pyproject.toml`:

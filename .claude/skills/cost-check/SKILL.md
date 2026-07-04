@@ -24,8 +24,24 @@ uses at call time — so the numbers are authoritative. For automated enforcemen
 ### 1. Set the database path
 
 ```bash
-DB="${DONNA_DB:-donna_tasks.db}"
+# kit.yaml → budget.spend_db_path (empty → discover the DB at the repo root)
+DB="$(python3 - <<'PY'
+import glob, os
+# Prefer the profile value; else find a *.db at the repo root.
+val = ""  # substitute budget.spend_db_path from kit.yaml
+if val:
+    print(val)
+else:
+    cands = glob.glob("*.db")
+    print(cands[0] if cands else "")
+PY
+)"
+[ -z "$DB" ] || [ ! -f "$DB" ] && echo "No spend DB found — set budget.spend_db_path in kit.yaml" >&2
 ```
+
+If the table turns out to be **empty** (every figure below is `$0.0000`), that's
+not necessarily healthy — verify the DB path is right and that `BudgetGuard` /
+your logging layer is actually writing rows, rather than assuming zero spend.
 
 ### 2. Today's total spend
 
@@ -104,8 +120,9 @@ FROM (
 
 ### 7. Read the thresholds and issue a verdict
 
-Load `DAILY_LIMIT` and `MONTHLY_LIMIT` from your config (e.g.
-`config/budget.yaml`). Compare the numbers above:
+Read the thresholds from the profile — `budget.daily_usd` and `budget.monthly_usd`
+in `.claude/kit.yaml` (defaults: 20 / 100). Don't hunt for a project-specific
+config file; the profile is the single source. Compare the numbers above:
 
 - **GREEN** — today < 80% daily AND month-to-date < 80% monthly AND projection < monthly
 - **WARN** — today ≥ 80% daily OR month-to-date ≥ 90% monthly OR projection ≥ monthly

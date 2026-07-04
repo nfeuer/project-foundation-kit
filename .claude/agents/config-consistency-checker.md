@@ -40,6 +40,14 @@ Every entry in the task-type registry must have a matching prompt file
 (under `prompts/`) and a matching schema file (under `schemas/`). Missing
 prompt or schema files mean the task type cannot run.
 
+## Search hygiene
+
+- Broad `grep` and `find` must prune stale and generated trees to avoid false positives.
+- Always pass `--exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}` (or the `find -prune` equivalent).
+```bash
+grep -r ... --exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}
+```
+
 ## How to Review
 
 1. Locate all config files:

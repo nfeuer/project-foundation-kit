@@ -86,6 +86,14 @@ uv run pip-audit   # or: safety check
 Flag any CVE with a fix available. P0 if the vulnerable code path is reachable
 from the changed surface.
 
+## Search hygiene
+
+- Broad `grep` and `find` must prune stale and generated trees to avoid false positives.
+- Always pass `--exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}` (or the `find -prune` equivalent).
+```bash
+grep -r ... --exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}
+```
+
 ## How to Review
 
 1. `git diff main...HEAD --name-only` — list changed files; note which touch

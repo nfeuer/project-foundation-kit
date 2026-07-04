@@ -68,6 +68,12 @@ alerts:
   channel: "discord"         # discord | slack | none
   target: "#project-debug"   # channel name or webhook env var
 
+# --- Budget: spend thresholds cost-check reads (not a hardcoded config path) ---
+budget:
+  daily_usd: 20              # daily pause threshold
+  monthly_usd: 100           # monthly hard cap
+  spend_db_path: ""          # path to the DB holding capabilities.llm.spend_table; "" → discover from repo root
+
 # --- Release automation (release skill) ---
 release:
   changelog_file: "docs/changelog.md"

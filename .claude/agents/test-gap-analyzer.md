@@ -50,6 +50,14 @@ Rank all gaps by risk class before listing them:
 | External integrations | API calls, DB writes | P1 |
 | Pure logic / formatting | renderers, formatters | P2 |
 
+## Search hygiene
+
+- Broad `grep` and `find` must prune stale and generated trees to avoid false positives.
+- Always pass `--exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}` (or the `find -prune` equivalent).
+```bash
+grep -r ... --exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}
+```
+
 ## How to Review
 
 1. `git diff main...HEAD --name-only` to scope the change.

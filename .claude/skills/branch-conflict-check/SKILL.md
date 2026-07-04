@@ -10,6 +10,14 @@ Run this when you open a PR or any time you want to verify merge safety. It answ
 **Profile-driven.** The base branch for diff commands is `trunk_branch` in `.claude/kit.yaml`
 (default: `main`). `check.sh` reads the same value automatically.
 
+## Search hygiene
+
+- Broad `grep` and `find` must prune stale and generated trees to avoid false positives.
+- Always pass `--exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}` (or the `find -prune` equivalent).
+```bash
+grep -r ... --exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}
+```
+
 ## Workflow
 
 ### 1. Get this branch's changed files

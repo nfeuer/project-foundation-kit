@@ -33,6 +33,14 @@ are not always regenerated on deploy.
 Packages whose PyPI/npm page, README, or release notes mark them as deprecated
 or unmaintained, or that have a known successor.
 
+## Search hygiene
+
+- Broad `grep` and `find` must prune stale and generated trees to avoid false positives.
+- Always pass `--exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}` (or the `find -prune` equivalent).
+```bash
+grep -r ... --exclude-dir={.git,.venv,node_modules,__pycache__,.claude/worktrees,dist,build}
+```
+
 ## How to Review
 
 1. Locate manifests and lockfiles:

@@ -5,6 +5,9 @@
 
 preset: "service"
 
+gates:
+  strictness: "standard"    # raise to "production" once the service carries real traffic
+
 toolchain:
   lint:             "uv run ruff check src/ tests/"
   format:           "ruff format"

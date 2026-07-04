@@ -8,8 +8,18 @@
 # is false, the migration-check step is skipped and reported N/A. This is how one
 # kit serves a Python LLM service and a Go CLI without editing every skill.
 
-kit_version: "1.0.0"        # stamp; `kit-update` compares this against the source kit
+kit_version: "1.1.0"        # stamp; `kit-update` compares this against the source kit
 preset: "llm-app"           # library | service | llm-app | frontend | data-pipeline | custom
+
+# --- Gates: how strictly the quality gates enforce (scale-adaptive) ---
+# prototype  → ratchet/perf/eval gates REPORT but never block; hard-safety gates
+#              (secrets, migrations, security review) still block. For repos
+#              that don't yet have users or a baseline worth defending.
+# standard   → the documented default behavior of every gate.
+# production → warnings harden: sparse perf data and missing baselines block
+#              instead of warn; security review runs on every diff.
+gates:
+  strictness: "standard"    # prototype | standard | production
 
 # --- Git / concurrency ---
 trunk_branch: "main"        # branch the worktree-isolation hook protects

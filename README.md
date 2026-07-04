@@ -52,6 +52,9 @@ CLAUDE.template.md              Project-instructions template (the file loaded e
     adopt-existing-project/     Brownfield install: audit → gap report → non-destructive merge
     kit-doctor/                 Verify an install is correctly wired (never modifies)
     kit-update/                 Propagate source-kit improvements to an adopted project
+    using-the-kit/              The dispatcher: 1%-rule trigger index + red-flags table
+    writing-kit-skills/         Author a kit-compatible skill (extend, don't fork)
+    config-audit/               Security audit of settings/hooks/CLAUDE.md/MCP configs
     parallel-work/              Worktree isolation for concurrent Claude sessions
     pre-pr/                     Local gate mirroring CI — green locally = green PR
     ci-watch/                   Watch a PR's CI and fix failures until green
@@ -66,6 +69,7 @@ CLAUDE.template.md              Project-instructions template (the file loaded e
     doc-sync/                   Update docs + spec + follow-ups in the same PR
     adr/                        Record an Architecture Decision when a non-obvious choice is made
     followup-tracking/          Durable log for deferred work and accepted drift
+    compound-learnings/         Write solved-problem patterns to docs/solutions/
     flaky-triage/               Confirm, log, and quarantine flaky tests (a visible loan)
     cost-check/                 Query spend vs daily/monthly budget + projection
     session-handoff/            Baton note so another session/agent can resume
@@ -86,6 +90,7 @@ presets/                        Archetype starting profiles: library / service /
 docs/
   PROFILE.md                    How the kit.yaml profile works and how skills consume it
   PRESETS.md                    The five archetypes and how to pick one
+  PROGRESS_LEDGER.md            Resumable step-state for long kit operations
   DOCS_STANDARD.md              Hand-written vs generated split + sync discipline
   COMMIT_CONVENTION.md          Conventional-commit format (feeds changelog automation)
   PII_LOGGING_CHECKLIST.md      What never to log; how to handle user data in structured logs
@@ -125,6 +130,10 @@ templates/ci.template.yml       Lint + types + tests gate that projects copy to 
    IDs, not code comments that vanish at merge.
 7. **Fuzzy behavior has a regression suite.** Tiered, version-controlled eval
    fixtures with pass-gates, run offline with mocked tools, gated in CI.
+8. **Solved problems compound.** Non-obvious fixes are written to
+   `docs/solutions/` and re-read before planning and debugging, so each unit of
+   work makes the next one easier — and skills fire on the 1% rule (`using-the-kit`),
+   so none of this depends on remembering to ask.
 
 ## The workflow catalog by purpose
 
@@ -151,7 +160,8 @@ decision points) · `eval-harness` (tiered fixtures) · `cost-check` + `cost_gua
 
 **Docs, spec & memory** — stop drift and lost context.
 `doc-sync` + `docs-updater` · `spec-drift-checker` · `adr` (decision records) ·
-`followup-tracking` · `session-handoff` (baton note between sessions).
+`followup-tracking` · `compound-learnings` (solved-problem patterns that feed
+future planning) · `session-handoff` (baton note between sessions).
 
 **Release & operations** — standing signals and clean releases.
 `release` (conventional commits → changelog + semver + tag) · `nightly-audit`
@@ -162,8 +172,11 @@ incident note on repeated fallbacks) · `sync-health` (primary+replica lag/parit
 **Adapt & maintain the kit itself** — make it fit the project and stay current.
 `new-project-bootstrap` / `adopt-existing-project` (greenfield vs brownfield
 install) · the `kit.yaml` profile + `presets/` (one file drives the toolchain and
-capability toggles every skill reads) · `kit-doctor` (verify the wiring) ·
-`kit-update` (pull source-kit improvements without clobbering local changes).
+capability toggles every skill reads) · `using-the-kit` (the dispatcher: 1%-rule
+trigger index so skills actually fire) · `kit-doctor` (verify the wiring) ·
+`config-audit` (verify the config surface is *safe*, not just wired) ·
+`kit-update` (pull source-kit improvements without clobbering local changes) ·
+`writing-kit-skills` (extend the kit without forking it).
 
 ## Adapting it — the profile
 
@@ -179,6 +192,10 @@ every skill reads from it (see `docs/PROFILE.md`):
 - **Capability toggles** gate whole skills. `capabilities.llm.enabled: false`
   drops the eval/prompt-regression/cost gates; `capabilities.migrations.enabled:
   false` drops migration-check — reported N/A, no edits.
+- **Gate strictness** (`gates.strictness`) scales ceremony to maturity:
+  `prototype` makes the trend gates (coverage / perf / eval) advisory while the
+  hard-safety gates (secrets, migrations, security review) still block;
+  `production` hardens warnings into failures. See `docs/PROFILE.md`.
 - **Presets** (`presets/*.yaml`) are archetype starting points — `library`,
   `service`, `llm-app`, `frontend`, `data-pipeline` — so a new project inherits a
   sensible profile and only the skills that fit.
@@ -257,6 +274,14 @@ repo runs on. Use both.
    into brownfield repos non-destructively, `kit-doctor` verifies the wiring,
    and `kit-update` propagates upstream improvements without clobbering local
    changes.
+
+Credit where due: several conventions here were borrowed deliberately after
+studying the neighbors. The 1%-rule skill dispatcher (`using-the-kit`) and the
+skill-authoring meta-skill (`writing-kit-skills`) adapt superpowers' best
+mechanics; the `compound-learnings` loop adapts compound-engineering's
+solved-problems step; the config security audit (`config-audit`) was inspired
+by everything-claude-code's AgentShield. The kit's job is to bundle the
+repo-infrastructure layer well, not to pretend every good idea originated here.
 
 ## License
 

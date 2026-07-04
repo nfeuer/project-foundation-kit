@@ -8,7 +8,9 @@ description: Verify an installed kit is correctly wired — checks toolchain com
 Run this after adopting the kit, after any profile edit, or whenever a hook
 silently stopped firing. Its job is to surface wiring problems before they cost
 you a failed CI run or a swallowed exit code. It reads and checks only — it
-never modifies files.
+never modifies files. (This checks that the wiring *works*; for whether the
+config surface is *safe* — permissions, hooks, injection, secrets — run its
+sibling, **config-audit**.)
 
 ## Checks
 
@@ -315,6 +317,21 @@ if PR skills are referenced.
 python3 -c "import json; json.load(open('.claude/settings.json')); print('OK')"
 ```
 
+### 11. No stale progress ledgers
+
+A ledger in `.claude/scratch/` marks an in-flight bootstrap / adoption /
+kit-update run (see `docs/PROGRESS_LEDGER.md`). One older than 7 days means a
+run was abandoned mid-way — **WARN** with the resume point (the first non-DONE
+step), so it gets resumed or consciously deleted rather than forgotten.
+
+```bash
+find .claude/scratch -name '*-ledger.md' -mtime +7 2>/dev/null | while read -r f; do
+  echo "WARN stale ledger: $f"
+  grep -m1 -E '^\- \[ \]' "$f" || true
+done
+[ -d .claude/scratch ] || echo "OK - no scratch dir"
+```
+
 ## Output
 
 Emit exactly this fenced block with real results. Fill in the righthand column;
@@ -335,6 +352,7 @@ never leave a check blank.
 | CI workflow parses | PASS/WARN/FAIL | — |
 | gh auth | PASS/WARN/FAIL/N/A | — |
 | settings.json valid JSON | PASS/WARN/FAIL | — |
+| No stale progress ledgers | PASS/WARN | — |
 
 Overall: PASS / WARN (N warnings, 0 failures) / FAIL (N failures)
 ```

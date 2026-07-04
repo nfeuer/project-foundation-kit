@@ -111,6 +111,12 @@ For each budgeted path, apply both checks:
 A path **fails** if either check is violated. Paths not present in
 `capabilities.perf.budgets` are ignored.
 
+**Strictness** (`gates.strictness` in `kit.yaml`, see `docs/PROFILE.md`):
+at `prototype`, failures are reported as `ADVISORY` and do not block the PR.
+At `production`, budgeted paths with sparse data (<20 observations) are a FAIL
+rather than an annotation — a production gate that can't measure its path is
+not a gate — and a missing baseline file blocks instead of bootstrapping.
+
 ### 5. Ratchet the baseline down on improvement
 
 When one or more paths are strictly faster than their baseline, offer to lower

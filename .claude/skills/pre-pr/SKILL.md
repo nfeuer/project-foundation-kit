@@ -14,6 +14,13 @@ the two in lockstep: when you add a CI job, add a step here.
 Each step tagged `# kit.yaml → <key>` runs the command at that key if set; an
 empty string in the profile means skip the step and mark it N/A in the output.
 
+**Strictness-aware.** Read `gates.strictness` once at the start (see
+`docs/PROFILE.md`). At `prototype`, the trend gates — coverage ratchet, perf
+budget, prompt-regression pass-gates — report their numbers but do not block
+the PR; note `(advisory — prototype)` on their output lines. At `production`,
+step 5's security review runs on **every** diff, not only sensitive surfaces.
+Secrets scan, migrations, and security findings block at every level.
+
 ## Checklist
 
 Create one todo per step, then work them in order. **Stop and fix** on any
@@ -55,7 +62,8 @@ If the change touches auth, secrets, user input validation, or external calls
 agent over the diff. It audits for credential leaks, injection paths, auth bypass,
 and insecure token handling. Any finding blocks the PR until addressed or
 explicitly accepted with a documented reason. If none of those surfaces are
-involved, mark N/A.
+involved, mark N/A — except at `production` strictness, where the review runs
+on every diff regardless of surface.
 
 ### 6. Coverage ratchet
 **Applies when** `capabilities.coverage.ratchet_enabled` is true in `.claude/kit.yaml`.
@@ -125,10 +133,12 @@ Run the **prompt-regression** skill — re-run the affected task_type's eval
 fixtures and confirm no gated tier regressed. An accepted score tradeoff must be
 logged as a follow-up.
 
-### 15. Follow-ups
+### 15. Follow-ups & learnings
 Scan your diff for TODOs, deferred decisions, and accepted drift. Append them to
 the follow-ups log (`doc-sync` skill / `docs/followups.md`). Close any follow-up
-this PR resolves.
+this PR resolves. If the work solved a non-obvious problem (a bug that took real
+investigation, a surprising dependency constraint, a workaround), also run the
+**compound-learnings** skill so the solution lands in `docs/solutions/`.
 
 ### 16. Branch-conflict check
 Run the **branch-conflict-check** skill to see whether another open PR touches the
@@ -163,6 +173,7 @@ conditional gates `N/A` when they don't apply:
 - [ ] Spec: <cited §X.Y / §X.Y may need update — reason / N/A>
 - [ ] Prompt regression: <no regression / N/A>
 - [ ] Follow-ups: <none / added N / closed N>
+- [ ] Learnings: <captured docs/solutions/<file> / none to capture>
 - [ ] Branch conflicts: <none / overlaps PR #N on <files>>
 - [ ] Working tree: <clean>
 

@@ -17,6 +17,14 @@ phases so the change is never all-or-nothing.
 > Run every phase from the repo root. No changes are written until you confirm
 > the dry-run output.
 
+**Progress ledger.** Adoption spans phases and approval pauses — keep a ledger
+at `.claude/scratch/adopt-existing-project-ledger.md` (see
+`docs/PROGRESS_LEDGER.md`). Check for an existing ledger before starting and
+resume from it (audit findings and per-phase approvals are the recorded
+results); update it after every phase step; mark a phase awaiting human
+approval as `BLOCKED`. Delete the ledger when adoption completes or is
+explicitly abandoned.
+
 ---
 
 ## Workflow

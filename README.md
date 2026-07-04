@@ -189,6 +189,75 @@ Bootstrap **detects** most of the profile from the repo; `adopt-existing-project
 wired. The hooks are portable via `$CLAUDE_PROJECT_DIR` and degrade gracefully
 (no `gh`/auth → they no-op rather than error).
 
+## How this compares to other skills & workflow packages
+
+Most popular Claude Code packages govern **how the agent works a single task**.
+This kit governs **what the repo enforces around every task** — the hooks,
+gates, harnesses, and templates that outlive any one session. That puts it at a
+different layer from the packages you may already use, and makes it a companion
+to most of them rather than a replacement.
+
+### Pairs well with superpowers
+
+[superpowers](https://github.com/obra/superpowers) is a per-task engineering
+methodology: brainstorm a spec before any code, write a fine-grained plan,
+enforce strict TDD, dispatch fresh subagents per task, review with evidence,
+land the branch. It is excellent at disciplining *the agent* — and it
+deliberately stops there. It doesn't install CI, detect your toolchain,
+scaffold observability, run eval fixtures against prompt changes, ratchet
+coverage, gate destructive migrations, or automate releases.
+
+That's this kit's whole job, and the two compose cleanly:
+
+- **superpowers** makes the agent brainstorm, plan, and test-drive its way
+  through a task. **The kit** makes sure the resulting PR can't arrive red,
+  can't drop coverage, can't regress a p95 budget or an eval score, and can't
+  merge with silent fallbacks or drifted docs — no matter how the code was
+  produced.
+- The one real overlap is **worktree isolation and branch finishing**.
+  superpowers practices it as an in-session workflow the agent follows; the kit
+  installs it as a PreToolUse hook that *blocks* edits on `main` for every
+  session — including ones where no methodology is loaded — plus
+  merge-triggered cleanup. They agree on the pattern, so they don't fight.
+
+If superpowers is a senior engineer sitting beside the agent for each task,
+this kit is the CI, observability, and evaluation scaffolding the whole team's
+repo runs on. Use both.
+
+### The rest of the landscape
+
+| Package | Layer it targets | Relationship to this kit |
+|---|---|---|
+| [SuperClaude](https://github.com/SuperClaude-Org/SuperClaude_Framework), [BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD) | Task methodology: lifecycle commands, personas, behavioral modes | Orthogonal — neither installs repo infrastructure (hooks, CI gates, eval, observability) |
+| [compound-engineering](https://github.com/EveryInc/compound-engineering-plugin) | Methodology plus a compounding-learnings loop | Nearest neighbor: it has worktrees, a CI-repair loop, and a `docs/solutions/` feedback step — but no eval/prompt-regression harness, observability templates, migration/coverage/perf gates, or toolchain profile |
+| [Agent OS](https://github.com/buildermethods/agent-os) | Capturing your codebase's standards into reusable spec context | Complementary: standards documents vs. installed gates and harnesses; its any-stack claim is the closest analog to `kit.yaml` |
+| [anthropics/skills](https://github.com/anthropics/skills), [claude-code-templates](https://github.com/davila7/claude-code-templates), [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) | Skill-format reference, component marketplaces, discovery indexes | Parts bins and distribution channels — you assemble the pieces; the kit is a pre-assembled, opinionated system whose pieces reference each other |
+| [claude-flow](https://github.com/ruvnet/claude-flow) | Multi-agent swarm orchestration, vector memory | Different problem entirely: agent coordination, not repo hygiene |
+
+### What no other package bundles
+
+1. **Enforced, not suggested.** Worktree isolation and secret scanning are
+   hooks that block the action, not workflow steps the agent is asked to
+   remember. Discipline that survives a fresh session with no context.
+2. **One profile, any stack.** `kit.yaml` adapts every skill's commands and
+   capability set to your toolchain from a single file. Methodology frameworks
+   assume you know your commands; marketplaces make you pick per-language
+   variants.
+3. **LLM behavior is gated, not vibes.** Tiered eval fixtures, prompt-regression
+   runs on prompt/model diffs, and cost guards with budget projection. No
+   methodology framework ships a regression story for non-deterministic
+   behavior.
+4. **Observability as code.** Reference templates for structured dual-render
+   logging, no-silent-failure fallback alerting, perf budgets, and health
+   watching — plus a review gate that checks a diff is debuggable before merge.
+5. **The PR queue is managed end to end.** A local gate that mirrors CI,
+   CI-watching until green, conflict warnings across open PRs, coverage and
+   perf ratchets, flaky-test quarantine, and release automation.
+6. **Adoption is a lifecycle, not an install.** `adopt-existing-project` merges
+   into brownfield repos non-destructively, `kit-doctor` verifies the wiring,
+   and `kit-update` propagates upstream improvements without clobbering local
+   changes.
+
 ## License
 
 MIT — see [LICENSE](LICENSE). Use it, fork it, adapt it to your own projects.

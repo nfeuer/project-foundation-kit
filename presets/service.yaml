@@ -53,6 +53,12 @@ capabilities:
     lag_threshold_s: 300
     parity_tolerance: 0
 
+logging:
+  initialized: false                    # run logging-init: probe → 3 questions → wire
+  library: ""
+  destination: "stdout"
+  dev_console: true
+
 alerts:
   channel: "discord"                    # discord | slack | none
   target: "#ops-alerts"                 # channel name or webhook env var

@@ -66,6 +66,7 @@ skill applies, not a reason to skip it.
 | Solved a non-obvious problem (gnarly bug, tricky integration, workaround) | `compound-learnings` |
 | Session ending mid-task, or handing off to another agent | `session-handoff` |
 | A test failed, then passed with no code change | `flaky-triage` |
+| Repo logs via print/console.log or ad-hoc logging, or `logging.initialized` is false | `logging-init` |
 | Editing `.claude/settings.json`, hooks, CLAUDE.md, or MCP config | `config-audit` before committing |
 | Writing or modifying a kit skill | `writing-kit-skills` |
 | After install, profile edit, or a hook silently stopped firing | `kit-doctor` |

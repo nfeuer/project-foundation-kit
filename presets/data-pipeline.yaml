@@ -40,6 +40,12 @@ capabilities:
     ratchet_enabled: true
     baseline_file: ".coverage-baseline"
 
+logging:
+  initialized: false                   # run logging-init: probe → 3 questions → wire
+  library: ""
+  destination: "stdout"
+  dev_console: true
+
 alerts:
   channel: "discord"                   # discord | slack | none
   target: "#data-alerts"

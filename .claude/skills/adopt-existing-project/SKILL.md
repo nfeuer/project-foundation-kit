@@ -181,7 +181,21 @@ Pick the **first** matching file to determine the language and manager. Set
 `toolchain.install` to the real install command (e.g. `npm ci`, `go mod download`,
 `poetry install`).
 
-#### 1.8 Infer a candidate `kit.yaml`
+#### 1.8 Logging reality check
+```bash
+# What does this repo actually log with? (see logging-init step 1 for the full probe)
+grep -rEl --include='*.py' 'import (structlog|loguru)|import logging' src/ 2>/dev/null | head -3
+grep -rEl --include='*.{js,ts}' "require\(['\"](pino|winston|bunyan)|from ['\"](pino|winston)" src/ lib/ 2>/dev/null | head -3
+grep -rE --include='*.py' '^\s*print\(' src/ 2>/dev/null | wc -l
+grep -rE --include='*.{js,ts}' 'console\.(log|error|warn)' src/ lib/ 2>/dev/null | wc -l
+```
+(Prune with `--exclude-dir={.git,.venv,node_modules,__pycache__,dist,build}`.)
+Record the classification — GREENFIELD / PRINT-ONLY (with site count) /
+PARTIAL / ESTABLISHED (library) — so the Phase 2 gap report states the logging
+gap from evidence, not assumption. The fix is the **logging-init** skill in
+Phase 4; do not wire anything now.
+
+#### 1.9 Infer a candidate `kit.yaml`
 From the evidence above, draft a `kit.yaml` using the real commands and the
 best-fit preset (`library` / `service` / `llm-app` / `frontend` /
 `data-pipeline`). Mark every field inferred vs. confirmed. Print it — do not
@@ -206,7 +220,7 @@ exact skill or hook that closes it.
 | 5 | No follow-ups log | Deferred decisions get lost | `docs/followups.md` + `followup-tracking` skill | Low |
 | 6 | No spec-sync loop | Spec drifts from code silently | `doc-sync` skill + `spec-drift-checker` agent | Medium |
 | 7 | No eval harness | Prompt behavior unverifiable | `eval-harness` + `prompt-regression` skills | High |
-| 8 | No structured logging template | Failures may be swallowed | `templates/logging_setup.py` / `fallback_alert.py` | High |
+| 8 | No structured logging (per §1.8: print-only, 87 sites) | Failures may be swallowed; nothing is greppable | `logging-init` skill (probe → questions → wire) + `fallback_alert.py` | High |
 | 9 | No nightly audit | Drift accumulates unnoticed | `nightly-audit` skill + cron | Medium |
 
 Populate the table from the actual audit — omit rows where the repo already
@@ -309,9 +323,12 @@ independently valuable, each requiring explicit human approval before the next.
 - Outcome: every PR keeps docs and spec in sync; deferred decisions are tracked.
 
 **Phase 4 — Observability and evaluation**
-- Skills: `eval-harness`, `prompt-regression`, `cost-check`, `nightly-audit`.
+- Skills: `logging-init` (driven by the §1.8 classification — asks its three
+  questions, then wires additively; ESTABLISHED repos keep their library),
+  `eval-harness`, `prompt-regression`, `cost-check`, `nightly-audit`.
 - Agents: `observability-reviewer`, `test-gap-analyzer`.
-- Reference implementations: `logging_setup.py`, `fallback_alert.py`.
+- Reference implementations: `fallback_alert.py` (logging itself comes via
+  `logging-init`).
 - Outcome: LLM behavior is verifiable; costs are tracked; silent failures are
   eliminated; a morning digest flags drift before it compounds.
 
@@ -364,6 +381,7 @@ correct command. Installing the wrong formatter silently reformats code.
 - CLAUDE.md: <present | absent>
 - Docs: <dir present — DOCS_STANDARD: yes/no, followups: yes/no (path if non-standard) | absent>
 - Spec file: <path | none detected>
+- Logging: <ESTABLISHED (<library>) | PARTIAL | PRINT-ONLY (N sites) | GREENFIELD>
 - Toolchain detected: lint=<cmd>, typecheck=<cmd>, test=<cmd>, install=<cmd>
 - Candidate kit.yaml: <printed above — review and confirm>
 

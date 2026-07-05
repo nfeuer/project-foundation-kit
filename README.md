@@ -66,6 +66,7 @@ CLAUDE.template.md              Project-instructions template (the file loaded e
     prompt-regression/          Re-run eval fixtures when a prompt/model change lands
     eval-harness/               Tiered, version-controlled fixtures for fuzzy behavior
     observability-check/        Verify a change is debuggable before merge
+    logging-init/               Probe → 3 questions → wire structured logging for any stack
     doc-sync/                   Update docs + spec + follow-ups in the same PR
     adr/                        Record an Architecture Decision when a non-obvious choice is made
     followup-tracking/          Durable log for deferred work and accepted drift
@@ -154,6 +155,8 @@ leaks) · `config-consistency-checker` (dangling config refs) · `secret-scan-di
 (keys leaked into source) · `flaky-triage` (flaky tests confirmed + quarantined).
 
 **Observability & evaluation** — make behavior debuggable and measurable.
+`logging-init` (initialize/upgrade structured logging from any starting point —
+probes what exists, asks three questions, wires additively per stack) ·
 `observability-check` + `observability-reviewer` (no silent failures, logging at
 decision points — enforcing the per-process event catalog in
 `docs/LOGGING_STANDARD.md`: jobs, consumers, pipelines, lifecycle, not just API

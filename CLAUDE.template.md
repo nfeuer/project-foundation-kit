@@ -32,8 +32,12 @@ when a rule seems arbitrary, this is what justifies it.>
 2. **Safety first, dial back later.** New autonomy starts constrained
    (draft-only, feature-branch-only, dry-run). Constraints are relaxed
    explicitly via config, never assumed.
-3. **Structured logging at every decision point.** <If LLM-backed:> every model
-   call logs task_type, model, latency, tokens, cost, and output. No exceptions.
+3. **Structured logging at every decision point — for every process type.**
+   Every significant operation (background job, batch stage, consumer, external
+   call) logs outcome + duration; jobs log start/progress/terminal events; state
+   transitions log from→to. See `docs/LOGGING_STANDARD.md`. <If LLM-backed:>
+   every model call additionally logs task_type, model, tokens, cost, and
+   output. No exceptions.
 4. **One abstraction per external dependency.** All <LLM / payment / email> calls
    go through a single interface. Never call a provider SDK directly from
    feature code.

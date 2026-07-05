@@ -92,6 +92,7 @@ docs/
   PRESETS.md                    The five archetypes and how to pick one
   PROGRESS_LEDGER.md            Resumable step-state for long kit operations
   DOCS_STANDARD.md              Hand-written vs generated split + sync discipline
+  LOGGING_STANDARD.md           Event catalog per process type — jobs, consumers, pipelines, lifecycle, not just API calls
   COMMIT_CONVENTION.md          Conventional-commit format (feeds changelog automation)
   PII_LOGGING_CHECKLIST.md      What never to log; how to handle user data in structured logs
   followups.template.md         The follow-ups log format
@@ -154,9 +155,11 @@ leaks) · `config-consistency-checker` (dangling config refs) · `secret-scan-di
 
 **Observability & evaluation** — make behavior debuggable and measurable.
 `observability-check` + `observability-reviewer` (no silent failures, logging at
-decision points) · `eval-harness` (tiered fixtures) · `cost-check` + `cost_guard.py`
+decision points — enforcing the per-process event catalog in
+`docs/LOGGING_STANDARD.md`: jobs, consumers, pipelines, lifecycle, not just API
+calls) · `eval-harness` (tiered fixtures) · `cost-check` + `cost_guard.py`
 (spend vs budget, pause-before-call) · `logging_setup.py` / `fallback_alert.py`
-(the reference patterns).
+(the reference patterns, incl. the generic `log_operation` timing helper).
 
 **Docs, spec & memory** — stop drift and lost context.
 `doc-sync` + `docs-updater` · `spec-drift-checker` · `adr` (decision records) ·

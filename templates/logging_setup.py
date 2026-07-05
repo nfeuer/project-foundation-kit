@@ -18,11 +18,24 @@ ideas, in order of importance:
    ``"cost.budget_exceeded"``) that your log pipeline can promote to an indexed
    label for cheap filtering.
 
+4. **Every significant operation logs outcome + duration — not only API/model
+   calls.** Background jobs, batch stages, cache rebuilds, migrations, file
+   exports: anything that can be slow or can fail gets a paired
+   ``<name>_completed`` / ``<name>_failed`` event with ``duration_ms``. The
+   ``log_operation`` context manager below makes the pair a one-liner. The full
+   per-process-type event catalog lives in ``docs/LOGGING_STANDARD.md``.
+
 Usage:
     setup_logging(log_level="INFO", json_output=not sys.stdout.isatty())
     log = structlog.get_logger()
     bind_request_context(correlation_id="abc123", user_id="nick")
     log.info("task_completed", event_type="task.completed", task_id=42, latency_ms=88)
+
+    with log_operation("nightly_export", job_id=run_id) as op:
+        rows = export_batch()
+        op["rows_written"] = len(rows)
+    # → nightly_export_completed  duration_ms=1234.5 job_id=... rows_written=8812
+    # (or nightly_export_failed with the traceback, then the exception re-raises)
 """
 
 from __future__ import annotations
@@ -30,6 +43,9 @@ from __future__ import annotations
 import contextvars
 import logging
 import sys
+import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 
 import structlog
@@ -67,6 +83,45 @@ def _add_context_vars(
         if value:
             event_dict.setdefault(key, value)
     return event_dict
+
+
+@contextmanager
+def log_operation(name: str, **fields: Any) -> Iterator[dict[str, Any]]:
+    """Log outcome + duration for any significant operation, not just API calls.
+
+    Emits ``<name>_completed`` with ``duration_ms`` on success, or
+    ``<name>_failed`` with ``duration_ms`` and the traceback on error (the
+    exception re-raises — this records failures, it never swallows them).
+    Mutate the yielded dict to attach result fields (row counts, items skipped)
+    to the terminal event. Wrap background jobs, batch stages, cache rebuilds,
+    migrations — anything that can be slow or can fail. See
+    ``docs/LOGGING_STANDARD.md`` for the event catalog this pattern serves.
+
+    Args:
+        name: snake_case operation name; becomes the event-name prefix.
+        **fields: identifying fields (job_id, batch_id, ...) attached to the
+            terminal event.
+    """
+    log = structlog.get_logger()
+    start = time.monotonic()
+    result_fields: dict[str, Any] = {}
+    try:
+        yield result_fields
+    except Exception:
+        log.error(
+            f"{name}_failed",
+            duration_ms=round((time.monotonic() - start) * 1000, 1),
+            **fields,
+            **result_fields,
+            exc_info=True,
+        )
+        raise
+    log.info(
+        f"{name}_completed",
+        duration_ms=round((time.monotonic() - start) * 1000, 1),
+        **fields,
+        **result_fields,
+    )
 
 
 def setup_logging(log_level: str = "INFO", json_output: bool = True) -> None:

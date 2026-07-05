@@ -6,10 +6,14 @@ description: Verify a change is observable before merge — structured logging a
 # Observability Check
 
 Run this on any change that adds a decision point, an external call, a fallback,
-or a background task. The goal: when this code misbehaves in production at 2am,
-the logs alone should tell you what happened and why — without a redeploy to add
-logging. For a deeper automated pass, dispatch the **observability-reviewer**
-agent; this skill is the inline checklist.
+a background job, a consumer, a pipeline stage, or a state transition. The goal:
+when this code misbehaves in production at 2am, the logs alone should tell you
+what happened and why — without a redeploy to add logging. This applies to
+**every process type, not just API/model calls** — the per-process event catalog
+(jobs, consumers, pipelines, lifecycle, state machines, caches) is
+`docs/LOGGING_STANDARD.md`; hold the change to the rows that apply. For a deeper
+automated pass, dispatch the **observability-reviewer** agent; this skill is the
+inline checklist.
 
 ## What to check
 
@@ -30,19 +34,36 @@ Every `try/except` that falls back must emit `event_type="fallback_activated"`
 ### 3. Correlation context flows
 The change sets/propagates `correlation_id` (and `user_id`, `task_id` where
 relevant) so a single request's logs can be stitched together across modules and
-async boundaries. New entry points bind context at the top.
+async boundaries. New entry points bind context at the top — and **jobs,
+consumers, and pipeline runs count as entry points**: they bind a
+`run_id`/`job_id` that plays the same role, and it travels across any queue or
+process boundary the work crosses.
 
-### 4. External calls log latency + outcome
-Every call to an API/model/DB logs whether it succeeded, how long it took, and —
-for metered calls — tokens and cost. Failed-but-billed attempts still get a row
-so spend is never lost.
+### 4. Every significant operation logs outcome + duration
+Not just external calls. Any operation that can be slow or can fail — an
+API/model/DB call, a batch stage, a cache rebuild, a file export, a migration —
+emits a paired `<name>_completed` / `<name>_failed` event with `duration_ms`
+(the `log_operation` helper in `templates/logging_setup.py` makes the pair one
+line). For metered calls, add tokens and cost; failed-but-billed attempts still
+get a row so spend is never lost.
+
+### 4b. Long-running processes are legible while running, not just after
+A job or pipeline that runs for minutes emits `job_started`, periodic
+`job_progress` (items done / total), and a terminal event with items
+processed / skipped / failed — a start event with no terminal event makes every
+hang look like a crash. Skipped records log a `record_skipped` with a reason:
+counts without reasons aren't replayable. State transitions log
+`from_state` / `to_state` / trigger.
 
 ### 5. New failure modes are alertable
 If the change introduces a new way to fail (a new background loop, a new
 integration), there's a path for it to reach a human: a dashboard panel, an
 alert rule, or at minimum an `event_type` that an existing error-explorer
 dashboard already surfaces. Background tasks are supervised — an unexpected exit
-logs and alerts, it doesn't die quietly.
+logs and alerts, it doesn't die quietly. For scheduled work, remember the
+inverse failure: a job that stops *being scheduled* emits nothing — the absence
+of its `job_completed` heartbeat must be what alerts
+(`templates/healthwatch.py`).
 
 ### 6. Logs are human-readable too
 Field names are what a human would grep for. The console renderer (dev mode)
@@ -63,9 +84,10 @@ checklist.
 ## Observability Review
 - Decision points logged: <yes / gaps: ...>
 - Silent failures: <none / found at file:line>
-- Correlation context: <flows / missing at ...>
-- External-call telemetry: <complete / missing latency|cost at ...>
-- New failure modes alertable: <yes / add panel|alert for ...>
+- Correlation context (incl. job/run ids): <flows / missing at ...>
+- Operation telemetry (outcome + duration, all ops): <complete / missing at ...>
+- Long-running process legibility (start/progress/terminal, skip reasons): <yes / gaps: ... / N/A>
+- New failure modes alertable (incl. missing-heartbeat): <yes / add panel|alert for ...>
 - PII & logging hygiene: <clean / issues: ...>
 - Verdict: PASS / FIX NEEDED — <items>
 ```

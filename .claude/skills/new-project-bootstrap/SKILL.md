@@ -154,6 +154,7 @@ principles as non-negotiables. This file loads into every session — make it co
 
 ```bash
 cp "$KIT/docs/DOCS_STANDARD.md"      "$DEST/docs/DOCS_STANDARD.md"
+cp "$KIT/docs/LOGGING_STANDARD.md"   "$DEST/docs/LOGGING_STANDARD.md"
 cp "$KIT/docs/followups.template.md" "$DEST/docs/followups.md"
 mkdir -p "$DEST/docs/solutions"      # compound-learnings entries land here
 ```

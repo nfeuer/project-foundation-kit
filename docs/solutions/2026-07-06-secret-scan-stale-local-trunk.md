@@ -4,7 +4,7 @@
 - **Area:** `.claude/hooks/secret-scan-diff.sh` / git branch-diff scope
 - **Symptom:** `BLOCKED: Possible secret(s) detected in diff.` naming a line
   you did not touch on this branch — e.g.
-  `[AWS access key ID] .github/workflows/kit-ci.yml: printf 'AWS_KEY = "%s"\n' "AKIAABCDEFGHIJKLMNOP"` —
+  `[AWS access key ID] .github/workflows/kit-ci.yml: printf 'AWS_KEY = "%s"\n' "AKIAABCDEFGHIJKLMNOP"` — <!-- pragma: allowlist secret (quoted test vector) -->
   and appending the `# pragma: allowlist secret` opt-out appears to have no
   effect (the reported line still shows without the pragma).
 

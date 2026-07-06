@@ -9,9 +9,13 @@
 #
 # Usage:
 #   scripts/gen-catalog.sh           validate + rewrite the README catalog in
-#                                    place between <!-- catalog:begin/end -->
+#                                    place between <!-- catalog:begin/end -->,
+#                                    and the docs/PROFILE.md modes table between
+#                                    <!-- modes:begin/end --> (§4.3 — normative
+#                                    copy; WARN + skip if markers are absent)
 #   scripts/gen-catalog.sh --check   validate + exit 1 if the README catalog
-#                                    drifted from the frontmatter
+#                                    (or the PROFILE.md modes table, when its
+#                                    markers exist) drifted from the frontmatter
 #   scripts/gen-catalog.sh --modes   print the §4.3 strictness default-map table
 #
 # Env: KIT_ROOT overrides the repo root (default: git rev-parse --show-toplevel).
@@ -24,6 +28,10 @@ cd "$KIT_ROOT"
 README="README.md"
 BEGIN_MARK='<!-- catalog:begin -->'
 END_MARK='<!-- catalog:end -->'
+
+PROFILE="docs/PROFILE.md"
+MODES_BEGIN='<!-- modes:begin -->'
+MODES_END='<!-- modes:end -->'
 
 # The §4.2 key set, pre-sorted LC_ALL=C. Gates with no key do not exist.
 GATE_KEYS="branch_conflict build_artifact capture coverage_ratchet \
@@ -246,6 +254,28 @@ render_modes() {
 }
 
 # ---------------------------------------------------------------------------
+# docs/PROFILE.md modes section (§4.3: the normative three-column table lives
+# in docs/PROFILE.md and is generated from metadata). The interior between the
+# <!-- modes:begin/end --> markers is exactly what --modes prints.
+# ---------------------------------------------------------------------------
+
+profile_has_markers() {
+    [ -f "$PROFILE" ] \
+        && grep -q "^$MODES_BEGIN\$" "$PROFILE" \
+        && grep -q "^$MODES_END\$" "$PROFILE"
+}
+
+render_profile() { # print the full regenerated PROFILE.md to stdout
+    sed -n "1,/^$MODES_BEGIN\$/p" "$PROFILE"
+    render_modes
+    sed -n "/^$MODES_END\$/,\$p" "$PROFILE"
+}
+
+profile_markers_warn() {
+    echo "gen-catalog: WARN: $PROFILE is missing the '$MODES_BEGIN' / '$MODES_END' markers — skipping the modes table (SPEC.md §4.3)" >&2
+}
+
+# ---------------------------------------------------------------------------
 # Mode dispatch.
 # ---------------------------------------------------------------------------
 
@@ -254,6 +284,13 @@ case "${1:-}" in
         render_readme > "$SCRATCH"
         cat "$SCRATCH" > "$README"
         echo "gen-catalog: wrote catalog into $README"
+        if profile_has_markers; then
+            render_profile > "$SCRATCH"
+            cat "$SCRATCH" > "$PROFILE"
+            echo "gen-catalog: wrote modes table into $PROFILE"
+        else
+            profile_markers_warn
+        fi
         ;;
     --check)
         render_readme > "$SCRATCH"
@@ -262,6 +299,19 @@ case "${1:-}" in
             exit 1
         fi
         echo "gen-catalog: catalog is current"
+        # TODO(post-v2.0a): absent markers only WARN this release because a
+        # concurrent task is landing them in docs/PROFILE.md — tighten this
+        # branch to a hard failure once v2.0a lands (SPEC.md §4.3).
+        if profile_has_markers; then
+            render_profile > "$SCRATCH"
+            if ! diff -u "$PROFILE" "$SCRATCH" >&2; then
+                echo "gen-catalog: $PROFILE modes table drifted — run scripts/gen-catalog.sh" >&2
+                exit 1
+            fi
+            echo "gen-catalog: $PROFILE modes table is current"
+        else
+            profile_markers_warn
+        fi
         ;;
     --modes)
         render_modes

@@ -12,6 +12,14 @@ ci_job: none
 
 **Profile-driven.** Narrative doc paths use `capabilities.docs.dir` from `.claude/kit.yaml` (default: `docs/`). Spec checks reference `capabilities.spec.file` — if that key is empty, steps 3 (cite/sync spec) and the citation gate are skipped.
 
+> **Mode.** This gate runs per `gates.modes.docs_sync` in `.claude/kit.yaml`:
+> `enforce` — run, block on failure; `suggest` — surface it at the natural
+> moment with the `protects:` sentence and cost class above, run only on
+> acceptance, and record accept/decline in the gate ledger
+> (`.claude/scratch/gate-ledger.md`, SPEC.md §8.2) — never skip silently;
+> `off` — not offered. Key absent → derive from `gates.strictness` per the
+> table in `docs/PROFILE.md`. (SPEC.md §4.1, §4.4)
+
 Documentation drifts the moment code changes and the docs don't. This skill runs
 at the end of a change (it's step 6–8 of the `pre-pr` gate) and closes the gap
 across three surfaces: **narrative docs**, the **canonical spec**, and the

@@ -7,6 +7,34 @@ preset: "frontend"
 
 gates:
   strictness: "standard"    # prototype | standard | production — see docs/PROFILE.md
+  # init writes the uncommented block per gates.strictness + this preset's overlays
+  # (SPEC.md §4.3–4.4); uncomment/edit to override. frontend overlay: team-shaped preset,
+  # worktree_isolation defaults to enforce (§4.3); ui_build: enforce matters most here
+  # (this is the archetype's build gate).
+  # modes:
+  #   secrets_scan: enforce
+  #   credential_files: enforce
+  #   worktree_isolation: enforce
+  #   lint_types_tests: enforce
+  #   integration_tests: enforce
+  #   migration_check: enforce
+  #   coverage_ratchet: enforce
+  #   perf_budget: enforce
+  #   security_review: suggest
+  #   test_gap: suggest
+  #   docs_sync: suggest
+  #   spec_drift: suggest
+  #   prompt_regression: suggest
+  #   branch_conflict: enforce
+  #   observability_check: suggest
+  #   flaky_triage: enforce
+  #   sync_health: enforce
+  #   ui_build: enforce
+  #   build_artifact: enforce
+  #   capture: enforce
+  # triggers:
+  #   ui_build: ["src/**", "package.json"]
+  #   docs_sync: ["src/components/**"]
 
 toolchain:
   lint:             "npm run lint"      # swap for: pnpm lint | yarn lint

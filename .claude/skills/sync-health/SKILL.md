@@ -12,6 +12,14 @@ ci_job: none
 
 **Profile-driven.** Reads `capabilities.replica` keys from `.claude/kit.yaml`. Alert destination is `alerts.channel` / `alerts.target`. The skill is **skipped entirely** (`N/A`) when `capabilities.replica.enabled` is false — safe to leave installed on projects that have no replica.
 
+> **Mode.** This gate runs per `gates.modes.sync_health` in `.claude/kit.yaml`:
+> `enforce` — run, block on failure; `suggest` — surface it at the natural
+> moment with the `protects:` sentence and cost class above, run only on
+> acceptance, and record accept/decline in the gate ledger
+> (`.claude/scratch/gate-ledger.md`, SPEC.md §8.2) — never skip silently;
+> `off` — not offered. Key absent → derive from `gates.strictness` per the
+> table in `docs/PROFILE.md`. (SPEC.md §4.1, §4.4)
+
 Write-through replication from a primary to a replica (e.g. SQLite → Postgres) can
 drift silently: a failed sync worker, a schema mismatch, or a burst of writes that
 outpaces the commit rate leaves rows missing on the replica with no visible error on

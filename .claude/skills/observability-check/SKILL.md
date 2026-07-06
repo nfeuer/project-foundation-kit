@@ -20,6 +20,14 @@ what happened and why — without a redeploy to add logging. This applies to
 automated pass, dispatch the **observability-reviewer** agent; this skill is the
 inline checklist.
 
+> **Mode.** This gate runs per `gates.modes.observability_check` in `.claude/kit.yaml`:
+> `enforce` — run, block on failure; `suggest` — surface it at the natural
+> moment with the `protects:` sentence and cost class above, run only on
+> acceptance, and record accept/decline in the gate ledger
+> (`.claude/scratch/gate-ledger.md`, SPEC.md §8.2) — never skip silently;
+> `off` — not offered. Key absent → derive from `gates.strictness` per the
+> table in `docs/PROFILE.md`. (SPEC.md §4.1, §4.4)
+
 ## What to check
 
 ### 1. Decision points are logged

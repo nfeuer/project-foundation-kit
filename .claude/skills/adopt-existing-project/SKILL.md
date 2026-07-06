@@ -60,78 +60,53 @@ Hook detection follows `settings.json` — a repo may keep hook scripts under
 `.claude/hooks/` is the canonical location.
 
 ```bash
-# Extract every hook command string from settings.json and resolve .sh paths
-python3 - <<'PY'
-import json, os, sys
-
-try:
-    data = json.load(open(".claude/settings.json"))
-except Exception as e:
-    print(f"no settings.json or parse error: {e}"); sys.exit(0)
-
-# Walk the nested hooks structure: hooks.<Event>[{matcher, hooks:[{command}]}]
-cmds = []
-for hook_list in data.get("hooks", {}).values():
-    for entry in (hook_list if isinstance(hook_list, list) else []):
-        for h in (entry.get("hooks", []) if isinstance(entry, dict) else []):
-            cmd = h.get("command", "") if isinstance(h, dict) else ""
-            if cmd:
-                cmds.append(cmd)
-
-if not cmds:
-    print("no hook commands found in settings.json")
-    sys.exit(0)
-
-print(f"{len(cmds)} hook command(s) found")
-for cmd in cmds:
-    for token in cmd.split():
-        if token.endswith(".sh"):
-            resolved = token.replace("$CLAUDE_PROJECT_DIR", ".") \
-                            .replace("${CLAUDE_PROJECT_DIR}", ".")
-            exists = os.path.isfile(resolved)
-            executable = os.access(resolved, os.X_OK) if exists else False
-            status = "executable" if executable else \
-                     ("NOT EXECUTABLE" if exists else "MISSING")
-            print(f"  {token} -> {status}")
-PY
+# Extract every hook command string from settings.json and resolve .sh paths.
+# Tier-0 (SPEC §10): grep/sed over the JSON — full JSON parsing is CI's job.
+# Count "command": entries, then pull the .sh script tokens directly (robust to
+# the kit's escaped inner quotes, e.g.  "command": "bash \"$CLAUDE_PROJECT_DIR/…\"").
+if [ ! -f .claude/settings.json ]; then
+  echo "no settings.json"
+else
+  n=$(grep -cE '"command"[[:space:]]*:' .claude/settings.json)
+  if [ "$n" -eq 0 ]; then
+    echo "no hook commands found in settings.json"
+  else
+    printf '%s hook command(s) found\n' "$n"
+    grep -E '"command"[[:space:]]*:' .claude/settings.json \
+      | grep -oE '[^" ]*\.sh' | while IFS= read -r token; do
+      resolved=$(printf '%s' "$token" \
+        | sed 's#[$]{CLAUDE_PROJECT_DIR}#.#g; s#[$]CLAUDE_PROJECT_DIR#.#g')
+      if [ -f "$resolved" ]; then
+        [ -x "$resolved" ] && status="executable" || status="NOT EXECUTABLE"
+      else
+        status="MISSING"
+      fi
+      printf '  %s -> %s\n' "$token" "$status"
+    done
+  fi
+fi
 ```
 Record which named hooks are wired (`require-worktree`, `secret-scan-diff`,
 `prune-merged-worktrees`, `post-merge-prune`, autoformat). Note any custom
 hooks the repo has added — those must be preserved.
 
 ```bash
-# P4: Portability — flag absolute paths in hook commands.
+# P4: Portability — flag absolute paths in hook commands (Tier-0 grep/sed, SPEC §10).
 # Paths not anchored to $CLAUDE_PROJECT_DIR break on any other machine.
-python3 - <<'PY'
-import json, re, sys
-
-try:
-    data = json.load(open(".claude/settings.json"))
-except Exception:
-    sys.exit(0)
-
-cmds = []
-for hook_list in data.get("hooks", {}).values():
-    for entry in (hook_list if isinstance(hook_list, list) else []):
-        for h in (entry.get("hooks", []) if isinstance(entry, dict) else []):
-            cmd = h.get("command", "") if isinstance(h, dict) else ""
-            if cmd:
-                cmds.append(cmd)
-
-gaps = []
-for cmd in cmds:
-    for token in cmd.split():
-        if re.match(r'^[/~]', token) and '$CLAUDE_PROJECT_DIR' not in token:
-            gaps.append((token, cmd[:80]))
-
-if gaps:
-    for path, cmd_excerpt in gaps:
-        print(f"  PORTABILITY GAP: absolute path '{path}'")
-        print(f"    in command: {cmd_excerpt!r}")
-        print(f"    -> use $CLAUDE_PROJECT_DIR/... for cross-machine portability")
-else:
-    print("no absolute paths in hook commands")
-PY
+gaps=$( [ -f .claude/settings.json ] && \
+  grep -E '"command"[[:space:]]*:' .claude/settings.json | while IFS= read -r line; do
+    # isolate the command value and unescape \" → "  (one command per line)
+    cmd=$(printf '%s' "$line" \
+      | sed -E 's/.*"command"[[:space:]]*:[[:space:]]*"//; s/"[^"]*$//; s/\\"/"/g')
+    for token in $cmd; do
+      case "$token" in /*|~*) ;; *) continue ;; esac              # only /… or ~… paths
+      case "$token" in *'$CLAUDE_PROJECT_DIR'*) continue ;; esac  # anchored — ok
+      printf '  PORTABILITY GAP: absolute path %s\n' "$token"
+      printf '    in command: %s\n' "$cmd"
+      printf '    -> use $CLAUDE_PROJECT_DIR/... for cross-machine portability\n'
+    done
+  done )
+if [ -n "$gaps" ]; then printf '%s\n' "$gaps"; else echo "no absolute paths in hook commands"; fi
 ```
 Absolute paths in hook commands are a portability gap — record any found above
 in the gap report (Phase 2).
@@ -153,8 +128,10 @@ don't erase it.
 # Python
 cat pyproject.toml 2>/dev/null | grep -A5 '\[tool\.'
 cat setup.cfg 2>/dev/null | grep -A3 '\[mypy\]\|\[flake8\]\|\[pytest\]'
-# Node
-cat package.json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(list(d.get('scripts',{}).items()))" 2>/dev/null
+# Node — list package.json "scripts" (bash + coreutils; jq/full JSON parse is CI's job)
+sed -n '/"scripts"[[:space:]]*:[[:space:]]*{/,/^[[:space:]]*}/p' package.json 2>/dev/null \
+  | grep -oE '"[^"]+"[[:space:]]*:[[:space:]]*"[^"]*"' \
+  | sed -E 's/^"//; s/"$//; s/"[[:space:]]*:[[:space:]]*"/ : /'
 cat .eslintrc* tsconfig.json 2>/dev/null | head -20
 # Go
 cat Makefile 2>/dev/null | grep -E 'lint|test|vet|fmt'
@@ -244,18 +221,23 @@ Apply each approved gap closure. Rules:
 
 #### Settings / hooks — merge JSON, don't replace
 If `.claude/settings.json` exists, add the kit's hook entries alongside the
-existing ones — never replace the file. Show a diff:
+existing ones — never replace the file. List the kit entries missing from it
+(merge them by hand — settings are security-sensitive and never auto-written):
 ```bash
-# dry-run: what would be added to .claude/settings.json
-python3 - <<'PY'
-import json, sys
-existing = json.load(open(".claude/settings.json"))
-kit_hooks = <kit settings template content>
-# merge: for each hook type (SessionStart, PreToolUse, PostToolUse),
-# append kit entries that are not already present (compare by command string)
-merged = merge_hooks(existing, kit_hooks)
-print(json.dumps(merged, indent=2))
-PY
+# dry-run: which kit hook commands are missing from .claude/settings.json?
+# Tier-0 (SPEC §10): compare by command string with grep. The JSON merge itself
+# is done by hand and re-checked with config-audit (SPEC §12.1).
+settings_cmds() {   # print every hook command string (unescaped) in a settings file
+  grep -E '"command"[[:space:]]*:' "$1" 2>/dev/null \
+    | sed -E 's/.*"command"[[:space:]]*:[[:space:]]*"//; s/"[[:space:]]*,?[[:space:]]*$//; s/\\"/"/g'
+}
+settings_cmds "$KIT/.claude/settings.template.json" | while IFS= read -r kc; do
+  if settings_cmds .claude/settings.json | grep -qF -- "$kc"; then
+    printf '  present : %s\n' "$kc"
+  else
+    printf '  ADD     : %s\n' "$kc"
+  fi
+done
 ```
 Copy hook scripts that are absent; skip any that already exist under the same
 name. If the repo has a custom hook at the same path, emit a warning — do not
@@ -285,6 +267,10 @@ else
   echo "Writing inferred kit.yaml"
 fi
 ```
+On the write-if-absent branch, populate `gates.modes:` **fully** from the
+inferred preset's scaffold (uncomment it) per SPEC.md §4.4 — every key from §4.2,
+never a partial block, same as `new-project-bootstrap`. An existing kit.yaml is
+left untouched: its mode map is `/kit-menu`'s job, not adoption's (§12.1).
 
 #### Record the kit manifest
 After the approved hooks/skills/agents/settings land, copy the source kit's
@@ -293,8 +279,16 @@ version adopted here so `kit-update` can later distinguish a locally-modified
 kit file from an untouched one instead of guessing (SPEC §12.1). Files the team
 chose to keep their own version of will hash-mismatch this baseline and
 correctly surface as NEEDS REVIEW on the next update — that is intended.
+Install `scripts/kit-config.sh` in the same step, alongside the manifest: it is
+the Tier-0 profile reader (`kit-config.sh get <dotted.key> [default]`) that
+kit-doctor's bash checks and the hooks docs use to read `gates.modes.<key>` and
+other `kit.yaml` values without Python (SPEC.md §10.2). The manifest — which the
+concurrent task regenerates to include it — covers it as a kit-managed file.
 ```bash
 cp "$KIT/.claude/kit-manifest.sha256" .claude/kit-manifest.sha256
+mkdir -p scripts
+cp "$KIT/scripts/kit-config.sh" scripts/kit-config.sh   # Tier-0 profile reader
+chmod +x scripts/kit-config.sh
 ```
 
 #### Docs and follow-ups — add, never clobber
@@ -350,6 +344,14 @@ independently valuable, each requiring explicit human approval before the next.
 
 Each phase can be the end state if the team decides the later phases aren't
 worth the overhead for their context.
+
+**Mode map on adoption (SPEC.md §4.4 / §12.1).** On a *fresh* adoption (no
+`.claude/kit.yaml` on disk), the kit.yaml written in Phase 3 carries a
+fully-populated `gates.modes:` block, same as `new-project-bootstrap`. A repo
+that adopted the kit **pre-v2** already has a kit.yaml with no `modes:` block —
+adoption never rewrites it (kit-update manages files, not config). That repo is
+offered the mode map through `/kit-menu` (ships v2.0b); until then it behaves per
+its `gates.strictness` default map, so there is no behavior change (§12.1).
 
 ---
 

@@ -8,6 +8,17 @@
 # thing a coordinating session needs to touch): CLAUDE.md, .claude/settings*,
 # .claude/kit.yaml, config/*.yaml|*.yml, .gitignore. Tune the case-globs below.
 #
+# Mode-aware (SPEC.md §4.5): the block is governed by gates.modes.worktree_isolation
+# in the repo's .claude/kit.yaml, read via the standalone grep/sed contract (§10.3)
+# — NO dependency on scripts/kit-config.sh, so this keeps working when copied as a
+# bare git hook. Semantics:
+#   enforce → block edits on trunk outside a worktree (the behavior below);
+#   suggest → allow the edit but print a one-line parallel-work warning to stderr;
+#   off     → allow silently (§4.5: the hook shouldn't even be installed when off —
+#             kit-doctor whitelists it; this runtime check is belt-and-braces).
+# Fail-safe: kit.yaml missing, the key absent, or a malformed mode value all fall
+# back to enforce — the hook degrades loudly toward blocking, never toward silence.
+#
 # Input contract: Claude Code passes the tool input as JSON on stdin —
 # {"tool_input":{"file_path":"..."}}. Parsed with jq when available, a sed
 # fallback otherwise, and the legacy $CLAUDE_FILE_PATH env var last. If no
@@ -66,8 +77,33 @@ if [[ "$git_dir" != "$git_common" ]]; then
     [[ -z "$superproject" ]] && exit 0
 fi
 
-# --- On the trunk branch in the primary worktree — block ---
+# --- On the trunk branch in the primary worktree — mode decides the action ---
 repo_root=$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)
+
+# Read gates.modes.worktree_isolation standalone (§4.5/§10.3) — same one-line
+# grep/sed style as the trunk_branch reader in secret-scan-diff.sh. The key sits
+# at four-space indent under `gates:` → `  modes:`. Missing file, absent key, or a
+# malformed value all fall back to enforce (fail-safe, per the header note).
+mode="enforce"
+if [[ -n "$repo_root" && -f "$repo_root/.claude/kit.yaml" ]]; then
+    m=$(sed -n 's/^    worktree_isolation:[[:space:]]*//p' "$repo_root/.claude/kit.yaml" \
+        | head -1 | sed 's/#.*//' | tr -d ' "'"'")
+    case "$m" in
+        enforce|suggest|off) mode="$m" ;;
+        *)                   mode="enforce" ;;   # absent or malformed → enforce
+    esac
+fi
+
+case "$mode" in
+    off)
+        # §4.5: an off gate should not be installed at all; allow silently if it is.
+        exit 0 ;;
+    suggest)
+        echo "require-worktree hook [suggest mode]: editing '${file##*/}' on ${branch} outside a worktree — allowed, but concurrent parallel-work sessions can collide on shared files. Consider an isolated worktree first (worktree_isolation is set to 'suggest')." >&2
+        exit 0 ;;
+esac
+
+# --- enforce: block ---
 cat >&2 <<EOF
 BLOCKED: Editing source files on ${branch} is disabled to prevent conflicts
 between concurrent Claude sessions.

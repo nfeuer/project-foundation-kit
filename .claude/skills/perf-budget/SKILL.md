@@ -23,6 +23,14 @@ Steps tagged `# kit.yaml → <key>` use the value at that key if set; an empty
 string or absent key means skip the step and mark it N/A. This skill is invoked
 from **pre-pr** as a capability-gated step.
 
+> **Mode.** This gate runs per `gates.modes.perf_budget` in `.claude/kit.yaml`:
+> `enforce` — run, block on failure; `suggest` — surface it at the natural
+> moment with the `protects:` sentence and cost class above, run only on
+> acceptance, and record accept/decline in the gate ledger
+> (`.claude/scratch/gate-ledger.md`, SPEC.md §8.2) — never skip silently;
+> `off` — not offered. Key absent → derive from `gates.strictness` per the
+> table in `docs/PROFILE.md`. (SPEC.md §4.1, §4.4)
+
 ## Workflow
 
 ### 1. Check the capability gate
@@ -120,7 +128,9 @@ A path **fails** if either check is violated. Paths not present in
 at `prototype`, failures are reported as `ADVISORY` and do not block the PR.
 At `production`, budgeted paths with sparse data (<20 observations) are a FAIL
 rather than an annotation — a production gate that can't measure its path is
-not a gate — and a missing baseline file blocks instead of bootstrapping.
+not a gate — and a missing baseline file blocks instead of bootstrapping,
+unless the mode map overrides it (the `modes:` block wins over strictness
+prose).
 
 ### 5. Ratchet the baseline down on improvement
 

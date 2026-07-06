@@ -16,6 +16,14 @@ baseline file, runs the test suite with coverage, and enforces the floor. It
 does not reason about *which* paths are covered — use the **test-gap-analyzer**
 agent for that. This enforces the *number*.
 
+> **Mode.** This gate runs per `gates.modes.coverage_ratchet` in `.claude/kit.yaml`:
+> `enforce` — run, block on failure; `suggest` — surface it at the natural
+> moment with the `protects:` sentence and cost class above, run only on
+> acceptance, and record accept/decline in the gate ledger
+> (`.claude/scratch/gate-ledger.md`, SPEC.md §8.2) — never skip silently;
+> `off` — not offered. Key absent → derive from `gates.strictness` per the
+> table in `docs/PROFILE.md`. (SPEC.md §4.1, §4.4)
+
 ## Workflow
 
 ### 1. Read the baseline path
@@ -47,7 +55,8 @@ at `prototype`, a drop is reported as `ADVISORY` instead of FAIL and does not
 block the PR — the numbers are informational until there is a baseline worth
 defending. At `production`, `ratchet_enabled: true` with a missing baseline
 file is a FAIL rather than a first-run bootstrap — generate the baseline before
-gating.
+gating, unless the mode map overrides it (the `modes:` block wins over
+strictness prose).
 
 To ratchet up: write the new percentage (two decimal places) to the baseline
 file and stage it:

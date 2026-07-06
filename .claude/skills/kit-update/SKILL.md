@@ -73,6 +73,7 @@ set the manifest (`scripts/gen-manifest.sh`) covers:
 .claude/agents/*.md
 .claude/hooks/*.sh
 .claude/settings.template.json
+scripts/kit-config.sh
 ```
 
 Build the list (relative paths, one per line):
@@ -83,6 +84,7 @@ Build the list (relative paths, one per line):
     find .claude/agents -maxdepth 1 -name '*.md'
     find .claude/hooks  -name '*.sh'
     [ -f .claude/settings.template.json ] && echo .claude/settings.template.json
+    [ -f scripts/kit-config.sh ] && echo scripts/kit-config.sh
   } 2>/dev/null | sort )
 ```
 

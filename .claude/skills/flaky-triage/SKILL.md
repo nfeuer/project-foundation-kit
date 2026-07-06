@@ -12,6 +12,14 @@ ci_job: none
 
 **Profile-driven.** This skill reads `flaky.*` keys from `.claude/kit.yaml` (listed in [Profile keys](#profile-keys) below) and `toolchain.test` for the base runner command.
 
+> **Mode.** This gate runs per `gates.modes.flaky_triage` in `.claude/kit.yaml`:
+> `enforce` — run, block on failure; `suggest` — surface it at the natural
+> moment with the `protects:` sentence and cost class above, run only on
+> acceptance, and record accept/decline in the gate ledger
+> (`.claude/scratch/gate-ledger.md`, SPEC.md §8.2) — never skip silently;
+> `off` — not offered. Key absent → derive from `gates.strictness` per the
+> table in `docs/PROFILE.md`. (SPEC.md §4.1, §4.4)
+
 A test that passes on re-run with no code change is not noise — it is a latent reliability bug. This skill confirms the flakiness with a systematic re-run, files a durable follow-up so the finding is not lost, and optionally quarantines the test so it stops burning CI time while remaining visible to `nightly-audit`. Triggered by `ci-watch` (red→green, no change) or by a human who notices the same pattern.
 
 ## Profile keys

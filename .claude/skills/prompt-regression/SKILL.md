@@ -14,6 +14,14 @@ ci_job: none
 
 **Profile-driven.** The fixture directory used in steps 3–4 is `capabilities.llm.eval_dir` from `.claude/kit.yaml` (default: `fixtures`).
 
+> **Mode.** This gate runs per `gates.modes.prompt_regression` in `.claude/kit.yaml`:
+> `enforce` — run, block on failure; `suggest` — surface it at the natural
+> moment with the `protects:` sentence and cost class above, run only on
+> acceptance, and record accept/decline in the gate ledger
+> (`.claude/scratch/gate-ledger.md`, SPEC.md §8.2) — never skip silently;
+> `off` — not offered. Key absent → derive from `gates.strictness` per the
+> table in `docs/PROFILE.md`. (SPEC.md §4.1, §4.4)
+
 Prompt changes are code changes. A reworded instruction, a shifted few-shot
 example, or a model alias swap can quietly regress a tier that was passing.
 Run this skill whenever a PR modifies anything under `prompts/`, `config/`
@@ -78,7 +86,8 @@ silent tradeoff is not an accepted one.
   **blocks the PR**. Fix the prompt or lower the expectation and document why.
   Exception: at `prototype` strictness (`gates.strictness` in `kit.yaml`), the
   delta is reported as `ADVISORY` instead of blocking — but still reported;
-  a prompt change without a score delta is never acceptable.
+  a prompt change without a score delta is never acceptable, unless the mode
+  map overrides it (the `modes:` block wins over strictness prose).
 - Model alias changes that touch a gated task_type follow the same rule.
 - If fixtures for the affected task_type don't exist yet, treat that as a P0
   gap: create tier-1 baseline fixtures before merging the prompt change.

@@ -101,8 +101,13 @@ UI sub-project: if step 1 found a `package.json` in a subdirectory (e.g.
 `tsc`, `typecheck`, or `type-check` script entry exists; otherwise leave it empty.
 
 ```bash
-# Inspect the sub-project's available scripts
-python3 -c "import json; s=json.load(open('<subdir>/package.json')).get('scripts',{}); [print(k,':', v) for k,v in s.items()]"
+# Inspect the sub-project's available scripts (bash + coreutils, no Python).
+# Prints "name : command" per "scripts" entry; assumes the conventional
+# one-entry-per-line JSON shape — full JSON parsing (jq) is CI's job, not the
+# Tier-0 machinery floor (SPEC.md §10).
+sed -n '/"scripts"[[:space:]]*:[[:space:]]*{/,/^[[:space:]]*}/p' <subdir>/package.json \
+  | grep -oE '"[^"]+"[[:space:]]*:[[:space:]]*"[^"]*"' \
+  | sed -E 's/^"//; s/"$//; s/"[[:space:]]*:[[:space:]]*"/ : /'
 ```
 
 Ratchet guards: set `capabilities.coverage.ratchet_enabled: true` ONLY if
@@ -134,6 +139,36 @@ Gate strictness: on a brand-new repo (no users, no baselines), set
 annotation. On a repo that already ships to users, use `"standard"`. See
 `docs/PROFILE.md` for what each level changes.
 
+Materialize the mode map (SPEC.md §4.4): init must write a **fully-populated**
+`gates.modes:` block — every key from §4.2, one per line, never a partial map.
+Skills read exactly one key each and never recompute precedence, so a key you
+omit is the only thing that forces the strictness fallback — write all of them.
+Two ways to produce the block, both landing on the same result:
+
+- **Uncomment the preset scaffold (default).** Each of the five presets now
+  carries a commented `modes:` block already reconciled with `docs/PROFILE.md`'s
+  generated strictness table and that archetype's overlays. If you kept the
+  preset's `gates.strictness`, just uncomment it verbatim.
+- **Derive, if you changed strictness.** If you moved `gates.strictness` off the
+  preset default (e.g. to `prototype` on a new repo), take each key's value from
+  that strictness column in `docs/PROFILE.md`'s table, then re-apply this
+  preset's overlays (§4.3) — e.g. `llm-app` pins `prompt_regression: enforce`;
+  `service`/`llm-app`/`data-pipeline` pin `worktree_isolation: enforce` while
+  `library` leaves it `suggest`; CI-backed and deterministic-protective gates
+  (`secrets_scan`, `credential_files`, `migration_check`, `lint_types_tests`)
+  stay `enforce` at every level.
+
+Then uncomment the preset's `gates.triggers:` scaffold and adapt each glob to the
+stack detected in step 1 — point them at the repo's real source, client, prompt,
+and migration paths rather than the preset's Python-shaped examples:
+
+```yaml
+gates:
+  triggers:
+    security_review: ["src/auth/**", "**/middleware/**"]   # detected: auth under src/
+    docs_sync: ["src/**", "README.md"]
+```
+
 ### 4. Install the `.claude/` scaffolding
 
 ```bash
@@ -142,7 +177,9 @@ cp    "$KIT/.claude/settings.template.json" "$DEST/.claude/settings.json"
 cp -r "$KIT/.claude/skills/"*              "$DEST/.claude/skills/"
 cp -r "$KIT/.claude/agents/"*              "$DEST/.claude/agents/"
 cp    "$KIT/.claude/kit-manifest.sha256"   "$DEST/.claude/kit-manifest.sha256"
-chmod +x "$DEST/.claude/hooks/"*.sh
+mkdir -p "$DEST/scripts"
+cp    "$KIT/scripts/kit-config.sh"          "$DEST/scripts/kit-config.sh"
+chmod +x "$DEST/.claude/hooks/"*.sh "$DEST/scripts/kit-config.sh"
 mkdir -p "$DEST/.claude/worktrees" "$DEST/.claude/scratch"
 printf '%s\n' '.claude/worktrees/' '.claude/scratch/' >> "$DEST/.gitignore"
 ```
@@ -151,6 +188,11 @@ Record the manifest by copying `.claude/kit-manifest.sha256` from the source kit
 (the `cp` above): it stamps the exact kit version this project adopted, which is
 what lets `kit-update` later tell a locally-modified kit file from an untouched
 one instead of guessing (SPEC §12.1).
+
+Copy `scripts/kit-config.sh` into the project alongside the manifest: it is the
+Tier-0 profile reader (`kit-config.sh get <dotted.key> [default]`) that
+kit-doctor's bash checks and the hooks docs use to read `gates.modes.<key>` and
+other values from `kit.yaml` without Python (SPEC.md §10.2).
 
 Adjust the formatter: hook wiring in `settings.json` stays as-is (all logic
 lives in the scripts); edit the per-extension case in
@@ -212,11 +254,12 @@ Then, for the language that applies, adapt the remaining patterns from `template
 ## Bootstrap Complete
 - Stack detected: <language>, <package manager>, trunk: <branch>
 - Preset: <name> (auto-detected | chosen by user)
-- kit.yaml: written — <N> toolchain commands set, <M> capabilities enabled
+- kit.yaml: written — <N> toolchain commands set, <M> capabilities enabled, gates.modes fully populated + triggers adapted
 - Hooks: worktree-isolation, secret-guard, secret-scan-diff, autoformat, merge-prune — installed
 - Skills: <list> — installed
 - Agents: <list> — installed
 - Manifest: .claude/kit-manifest.sha256 recorded (baseline for kit-update)
+- scripts/: kit-config.sh installed (Tier-0 profile reader)
 - CLAUDE.md: authored (<n> lines)
 - Docs: DOCS_STANDARD + followups + taxonomy scaffolded
 - CI: ci.yml installed (<jobs>)

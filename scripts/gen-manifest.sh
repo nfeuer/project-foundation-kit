@@ -33,11 +33,14 @@ trap 'rm -f "$TMP"' EXIT
 
 # The kit-managed set kit-update enumerates (SPEC.md §12.1). The manifest
 # itself is never included. Paths are repo-root-relative, sorted LC_ALL=C.
+# scripts/kit-config.sh ships to projects (bootstrap/adopt copy it so
+# kit-doctor's bash checks work there, SPEC.md §10.2), so it is covered.
 list_covered() {
     for f in .claude/skills/*/SKILL.md \
              .claude/agents/*.md \
              .claude/hooks/*.sh \
-             .claude/settings.template.json; do
+             .claude/settings.template.json \
+             scripts/kit-config.sh; do
         if [ -f "$f" ]; then
             printf '%s\n' "$f"
         fi

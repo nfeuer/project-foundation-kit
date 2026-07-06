@@ -14,6 +14,14 @@ ci_job: none
 
 **Profile-driven.** The migration tool command comes from `capabilities.migrations.heads_cmd` and the file-path glob from `capabilities.migrations.versions_glob` in `.claude/kit.yaml`; edit the profile to adapt to Flyway, Prisma, or any other tool.
 
+> **Mode.** This gate runs per `gates.modes.migration_check` in `.claude/kit.yaml`:
+> `enforce` — run, block on failure; `suggest` — surface it at the natural
+> moment with the `protects:` sentence and cost class above, run only on
+> acceptance, and record accept/decline in the gate ledger
+> (`.claude/scratch/gate-ledger.md`, SPEC.md §8.2) — never skip silently;
+> `off` — not offered. Key absent → derive from `gates.strictness` per the
+> table in `docs/PROFILE.md`. (SPEC.md §4.1, §4.4)
+
 Run this **as part of pre-pr** whenever a PR touches `*/versions/*` (Alembic) or
 any equivalent migration directory. Its job is to stop a destructive or
 un-reversible migration from reaching the primary DB and, for projects that

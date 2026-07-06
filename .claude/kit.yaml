@@ -20,6 +20,38 @@ preset: "llm-app"           # library | service | llm-app | frontend | data-pipe
 #              instead of warn; security review runs on every diff.
 gates:
   strictness: "standard"    # prototype | standard | production
+  # modes = enforce | suggest | off; suggest surfaces the gate and records declines;
+  # a gate with an authoritative CI job may not be demoted below enforce (SPEC.md §2.3, §4.1).
+  modes:                    # fully written by init; edit any line to override (SPEC.md §4.4)
+    secrets_scan: enforce
+    credential_files: enforce
+    worktree_isolation: enforce
+    lint_types_tests: enforce
+    integration_tests: enforce
+    migration_check: enforce
+    coverage_ratchet: enforce
+    perf_budget: enforce
+    security_review: suggest
+    test_gap: suggest
+    docs_sync: suggest
+    spec_drift: suggest
+    prompt_regression: enforce
+    branch_conflict: enforce
+    observability_check: suggest
+    flaky_triage: enforce
+    sync_health: enforce
+    ui_build: enforce
+    build_artifact: enforce
+    capture: enforce
+  # triggers are read by the agent, not by hooks/kit-config, so flow-style lists are
+  # fine here even though §10.3 constrains the bash-read keys (modes, above).
+  triggers:                 # path globs per gate, matched against the branch diff (SPEC.md §6.1)
+    security_review: [".claude/hooks/**", ".claude/settings*", "scripts/**", ".github/workflows/**"]
+    docs_sync: [".claude/skills/**", ".claude/agents/**", "README.md", "docs/**"]
+    spec_drift: [".claude/**", "scripts/**", "templates/**"]
+    test_gap: ["scripts/**", ".claude/hooks/**"]
+  # unattended:             # per-gate pre-consent for non-interactive runs (SPEC.md §6.4)
+  #   security_review: run  # run | skip — unattended sessions skip-and-log suggest gates by default
 
 # --- Git / concurrency ---
 trunk_branch: "main"        # branch the worktree-isolation hook protects
@@ -50,7 +82,7 @@ capabilities:
     eval_dir: "fixtures"
     spend_table: "invocation_log"
   spec:
-    file: "spec_v3.md"       # "" → disable spec-drift / citation checks
+    file: "SPEC.md"          # "" → disable spec-drift / citation checks
     section_marker: "§"
   docs:
     enabled: true

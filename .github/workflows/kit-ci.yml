@@ -76,6 +76,19 @@ jobs:
       - name: Kit manifest is current (SPEC.md §12.1)
         run: bash scripts/gen-manifest.sh --check
 
+      - name: kit-config.sh reads the profile (SPEC.md §10.2)
+        run: |
+          set -e
+          # (a) a top-level scalar resolves to a non-empty value
+          v="$(bash scripts/kit-config.sh get kit_version)"
+          if [ -n "$v" ]; then echo "ok   get kit_version -> $v"; else echo "FAIL get kit_version was empty"; exit 1; fi
+          # (b) a nested mode key resolves to the shipped value
+          v="$(bash scripts/kit-config.sh get gates.modes.security_review)"
+          if [ "$v" = "suggest" ]; then echo "ok   get gates.modes.security_review -> suggest"; else echo "FAIL get gates.modes.security_review expected 'suggest', got '$v'"; exit 1; fi
+          # (c) a missing key falls back to the supplied default
+          v="$(bash scripts/kit-config.sh get nonexistent.key fallback)"
+          if [ "$v" = "fallback" ]; then echo "ok   get nonexistent.key fallback -> fallback"; else echo "FAIL get nonexistent.key default expected 'fallback', got '$v'"; exit 1; fi
+
       - name: Hooks actually block (behavioral)
         run: |
           set -e
@@ -113,6 +126,25 @@ jobs:
           mkdir -p "$TMP/nojq"; printf '#!/bin/sh\nexit 127\n' > "$TMP/nojq/jq"; chmod +x "$TMP/nojq/jq"
           rc=0; payload "$TMP/src/app.py" | PATH="$TMP/nojq:$PATH" bash "$HOOKS/require-worktree.sh" 2>/dev/null || rc=$?
           check "require-worktree blocks without jq" 2 "$rc"
+
+          # 4a. worktree_isolation mode-awareness (SPEC.md §4.5). These run in the
+          #     $TMP primary worktree on main; the kit.yaml is removed afterwards so
+          #     checks 6–8 (which switch branches / rewrite kit.yaml) start clean.
+          mkdir -p "$TMP/.claude"
+          # suggest → src edit on main is allowed (rc 0) AND a warning hits stderr
+          printf 'gates:\n  modes:\n    worktree_isolation: suggest\n' > "$TMP/.claude/kit.yaml"
+          rc=0; err="$(payload "$TMP/src/app.py" | bash "$HOOKS/require-worktree.sh" 2>&1 1>/dev/null)" || rc=$?
+          check "require-worktree suggest-mode allows src edit on main" 0 "$rc"
+          if printf '%s' "$err" | grep -q "suggest mode"; then echo "ok   require-worktree suggest-mode warns on stderr"; else echo "FAIL require-worktree suggest-mode stderr warning missing (got: $err)"; exit 1; fi
+          # enforce restored → blocks again (rc 2)
+          printf 'gates:\n  modes:\n    worktree_isolation: enforce\n' > "$TMP/.claude/kit.yaml"
+          rc=0; payload "$TMP/src/app.py" | bash "$HOOKS/require-worktree.sh" 2>/dev/null || rc=$?
+          check "require-worktree enforce-mode blocks src edit on main" 2 "$rc"
+          # modes key absent → fail-safe default still blocks (rc 2)
+          printf 'trunk_branch: "main"\n' > "$TMP/.claude/kit.yaml"
+          rc=0; payload "$TMP/src/app.py" | bash "$HOOKS/require-worktree.sh" 2>/dev/null || rc=$?
+          check "require-worktree blocks when modes key absent (fail-safe)" 2 "$rc"
+          rm -f "$TMP/.claude/kit.yaml"   # restore clean state for checks 6–8
 
           # 5. credential-file guard blocks .env, allows normal files
           rc=0; payload "$TMP/.env" | bash "$HOOKS/protect-credential-files.sh" 2>/dev/null || rc=$?

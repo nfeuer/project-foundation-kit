@@ -138,8 +138,9 @@ templates/ci.template.yml       Lint + types + tests gate that projects copy to 
    fixtures with pass-gates, run offline with mocked tools, gated in CI.
 8. **Solved problems compound.** Non-obvious fixes are written to
    `docs/solutions/` and re-read before planning and debugging, so each unit of
-   work makes the next one easier — and skills fire on the 1% rule (`using-the-kit`),
-   so none of this depends on remembering to ask.
+   work makes the next one easier — and skills chain into each other at natural
+   moments (pre-pr → ci-watch → capture), while the enforce class is carried by
+   hooks that block regardless of session context.
 
 ## The workflow catalog
 
@@ -203,10 +204,13 @@ every skill reads from it (see `docs/PROFILE.md`):
 - **Capability toggles** gate whole skills. `capabilities.llm.enabled: false`
   drops the eval/prompt-regression/cost gates; `capabilities.migrations.enabled:
   false` drops migration-check — reported N/A, no edits.
-- **Gate strictness** (`gates.strictness`) scales ceremony to maturity:
-  `prototype` makes the trend gates (coverage / perf / eval) advisory while the
-  hard-safety gates (secrets, migrations, security review) still block;
-  `production` hardens warnings into failures. See `docs/PROFILE.md`.
+- **Gate strictness** (`gates.strictness`) scales ceremony to maturity by
+  selecting the default `gates.modes:` map init writes into `kit.yaml`:
+  `prototype` demotes the trend gates (coverage / perf / eval) to suggest while
+  the deterministic-protective gates (secrets, credential files, migrations)
+  stay enforce; `production` sets everything installed to enforce. Strictness
+  only picks the defaults — any line in the map can be overridden (SPEC.md §4.4).
+  See `docs/PROFILE.md`.
 - **Presets** (`presets/*.yaml`) are archetype starting points — `library`,
   `service`, `llm-app`, `frontend`, `data-pipeline` — so a new project inherits a
   sensible profile and only the skills that fit.
@@ -264,17 +268,19 @@ repo runs on. Use both.
 
 ### What no other package bundles
 
-1. **Enforced, not suggested.** Worktree isolation and secret scanning are
-   hooks that block the action, not workflow steps the agent is asked to
-   remember. Discipline that survives a fresh session with no context.
+1. **Enforced where it's deterministic and catastrophic; consented-and-recorded
+   everywhere else.** Hooks still block secret leaks and credential-file edits —
+   and, where enabled, edits outside a worktree — without asking; judgment-based
+   gates are offered with their cost and outcome, and every decline is recorded
+   rather than silently skipped.
 2. **One profile, any stack.** `kit.yaml` adapts every skill's commands and
    capability set to your toolchain from a single file. Methodology frameworks
    assume you know your commands; marketplaces make you pick per-language
    variants.
-3. **LLM behavior is gated, not vibes.** Tiered eval fixtures, prompt-regression
-   runs on prompt/model diffs, and cost guards with budget projection. No
-   methodology framework ships a regression story for non-deterministic
-   behavior.
+3. **LLM behavior is gated where you turn it on — and the llm-app preset turns
+   it on by default.** Tiered eval fixtures, prompt-regression runs on
+   prompt/model diffs, and cost guards with budget projection. No methodology
+   framework ships a regression story for non-deterministic behavior.
 4. **Observability as code.** Reference templates for structured dual-render
    logging, no-silent-failure fallback alerting, perf budgets, and health
    watching — plus a review gate that checks a diff is debuggable before merge.

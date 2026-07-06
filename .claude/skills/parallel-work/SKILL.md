@@ -20,6 +20,16 @@ time can't corrupt each other's tree or produce a tangled trunk.
 (`worktree_dir`, default: `.claude/worktrees`; `trunk_branch`, default: `main`).
 Update that file once to propagate the values everywhere.
 
+> **Mode.** This gate runs per `gates.modes.worktree_isolation` in `.claude/kit.yaml`:
+> `enforce` — run, block on failure; `suggest` — surface it at the natural
+> moment with the `protects:` sentence and cost class above, run only on
+> acceptance, and record accept/decline in the gate ledger
+> (`.claude/scratch/gate-ledger.md`, SPEC.md §8.2) — never skip silently;
+> `off` — not offered. Key absent → derive from `gates.strictness` per the
+> table in `docs/PROFILE.md`. (SPEC.md §4.1, §4.4) The enforcing surface is
+> the `require-worktree.sh` hook; at `suggest` the hook warns instead of
+> blocking, and at `off` it is not installed (SPEC.md §4.5).
+
 The `require-worktree.sh` PreToolUse hook enforces this — it blocks `Edit`/`Write`
 on the `trunk_branch` in the primary worktree. If you hit that block, you're in the
 wrong place; follow this skill.

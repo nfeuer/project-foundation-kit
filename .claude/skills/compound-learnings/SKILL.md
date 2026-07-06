@@ -13,6 +13,18 @@ ci_job: none
 **Profile-driven.** Solutions live at `<docs.dir>/solutions/`, where `docs.dir`
 is `capabilities.docs.dir` from `.claude/kit.yaml` (default: `docs`).
 
+> **Mode.** This gate runs per `gates.modes.capture` in `.claude/kit.yaml`:
+> `enforce` — run, block on failure; `suggest` — surface it at the natural
+> moment with the `protects:` sentence and cost class above, run only on
+> acceptance, and record accept/decline in the gate ledger
+> (`.claude/scratch/gate-ledger.md`, SPEC.md §8.2) — never skip silently;
+> `off` — not offered. Key absent → derive from `gates.strictness` per the
+> table in `docs/PROFILE.md`. (SPEC.md §4.1, §4.4) The `capture` key is
+> shared with followup-tracking and with doc-sync's follow-up logging;
+> capture suggestions fire on materiality — a diff that touched docs, a
+> debugging session worth writing down — not on every unit of work
+> (SPEC.md §6.3).
+
 A hard-won insight that lives only in one session's context is lost the moment
 the session ends. This skill closes the loop the follow-ups log opens: where
 `followup-tracking` captures *work still to do*, this captures *problems already

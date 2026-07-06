@@ -15,6 +15,14 @@ Run this when you open a PR or any time you want to verify merge safety. It answ
 **Profile-driven.** The base branch for diff commands is `trunk_branch` in `.claude/kit.yaml`
 (default: `main`). `check.sh` reads the same value automatically.
 
+> **Mode.** This gate runs per `gates.modes.branch_conflict` in `.claude/kit.yaml`:
+> `enforce` — run, block on failure; `suggest` — surface it at the natural
+> moment with the `protects:` sentence and cost class above, run only on
+> acceptance, and record accept/decline in the gate ledger
+> (`.claude/scratch/gate-ledger.md`, SPEC.md §8.2) — never skip silently;
+> `off` — not offered. Key absent → derive from `gates.strictness` per the
+> table in `docs/PROFILE.md`. (SPEC.md §4.1, §4.4)
+
 ## Search hygiene
 
 - Broad `grep` and `find` must prune stale and generated trees to avoid false positives.

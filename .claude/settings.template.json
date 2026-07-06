@@ -1,5 +1,5 @@
 {
-  "//": "Foundation-kit hook wiring. Copy to .claude/settings.json and adjust matchers/paths. $CLAUDE_PROJECT_DIR resolves to the repo root at hook time, so this file is portable across machines. The autoformat hook below assumes a Python/ruff project — swap the command for prettier/eslint/gofmt as appropriate.",
+  "//": "Foundation-kit hook wiring. Copy to .claude/settings.json. $CLAUDE_PROJECT_DIR resolves to the repo root at hook time, so this file is portable across machines. All hook logic lives in .claude/hooks/*.sh scripts (each reads the tool input JSON from stdin — jq preferred, sed fallback — and reports loudly instead of failing silent). Autoformat defaults to Python/ruff — swap the case in autoformat.sh for prettier/gofmt/rustfmt as appropriate.",
   "hooks": {
     "SessionStart": [
       {
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "file=\"$CLAUDE_FILE_PATH\"; case \"$file\" in *.env|*credentials*.json|*token.json|*.pem|*.key|*secret*) echo 'BLOCKED: refusing to edit a secrets/credential file' >&2; exit 2;; esac"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-credential-files.sh\""
           },
           {
             "type": "command",
@@ -29,9 +29,9 @@
         "matcher": "Bash",
         "hooks": [
           {
-            "//": "Block a push or PR-create if the branch diff leaks a secret into a normal source file. The scanner exits 2 on a finding, which blocks the tool call.",
+            "//": "Scans the branch diff for leaked secrets before a push or PR-create. The script itself inspects the stdin tool input and exits 0 for any other Bash command; exit 2 on a finding blocks the tool call.",
             "type": "command",
-            "command": "cmd=$(cat | jq -r '.tool_input.command // empty' 2>/dev/null); if printf '%s' \"$cmd\" | grep -Eq 'git[[:space:]]+push|gh[[:space:]]+pr[[:space:]]+create'; then bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/secret-scan-diff.sh\"; fi"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/secret-scan-diff.sh\""
           }
         ]
       }
@@ -42,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "file=\"$CLAUDE_FILE_PATH\"; [[ \"$file\" == *.py ]] && ruff check --fix --quiet \"$file\" 2>/dev/null && ruff format --quiet \"$file\" 2>/dev/null; true"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/autoformat.sh\""
           }
         ]
       },

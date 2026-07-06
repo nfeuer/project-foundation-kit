@@ -141,8 +141,10 @@ mkdir -p "$DEST/.claude/worktrees" "$DEST/.claude/scratch"
 printf '%s\n' '.claude/worktrees/' '.claude/scratch/' >> "$DEST/.gitignore"
 ```
 
-Adjust `settings.json`: keep the worktree + secret-guard hooks as-is; swap the
-PostToolUse autoformat command to match the toolchain (ruff / prettier / gofmt).
+Adjust the formatter: hook wiring in `settings.json` stays as-is (all logic
+lives in the scripts); edit the per-extension case in
+`.claude/hooks/autoformat.sh` to match the toolchain (ruff / prettier / gofmt —
+commented examples are in the script).
 
 ### 5. Author CLAUDE.md
 

@@ -29,15 +29,55 @@
 
 set -uo pipefail
 
+# --- Claude PreToolUse context: gate on the actual Bash command ---
+# When wired as a PreToolUse[Bash] hook, stdin carries the tool input JSON;
+# only a push / PR creation warrants a scan. When invoked directly (git hook,
+# pre-pr step) stdin is empty or non-JSON (git pre-push passes ref lines) and
+# we always scan. Parse failures scan anyway — the cheap, safe direction.
+payload=""
+[[ ! -t 0 ]] && payload="$(cat 2>/dev/null)"
+if [[ "$payload" == *'"tool_input"'* ]]; then
+    cmd=""
+    if command -v jq >/dev/null 2>&1; then
+        cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null)"
+    fi
+    if [[ -z "$cmd" ]]; then
+        cmd="$(printf '%s' "$payload" \
+            | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\(.*\)".*/\1/p' | head -1)"
+    fi
+    if [[ -z "$cmd" ]]; then
+        echo "secret-scan: could not parse hook input — scanning anyway" >&2
+    elif ! printf '%s' "$cmd" | grep -Eq 'git[[:space:]]+push|gh[[:space:]]+pr[[:space:]]+create'; then
+        exit 0  # not a push / PR creation — nothing to gate
+    fi
+fi
+
+# --- Trunk branch: kit.yaml → trunk_branch, else origin/HEAD, else main/master ---
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+trunk=""
+if [[ -n "$repo_root" && -f "$repo_root/.claude/kit.yaml" ]]; then
+    trunk=$(sed -n 's/^trunk_branch:[[:space:]]*//p' "$repo_root/.claude/kit.yaml" \
+        | head -1 | sed 's/#.*//' | tr -d ' "'"'")
+fi
+if [[ -z "$trunk" ]]; then
+    trunk=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
+fi
+if [[ -z "$trunk" ]]; then
+    for b in main master; do
+        git rev-parse --verify "$b" >/dev/null 2>&1 && { trunk="$b"; break; }
+    done
+fi
+
 # --- Diff scope: prefer staged changes (pre-commit); fall back to branch diff ---
 if ! git diff --cached --quiet 2>/dev/null; then
     # Staged content present — pre-commit context
     diff_output=$(git diff --cached -U0 2>/dev/null) || exit 0
-elif git rev-parse --verify main >/dev/null 2>&1; then
-    # Nothing staged — scan the full branch against main (pre-push / manual run)
-    diff_output=$(git diff main...HEAD -U0 2>/dev/null) || exit 0
+elif [[ -n "$trunk" ]] && git rev-parse --verify "$trunk" >/dev/null 2>&1; then
+    # Nothing staged — scan the full branch against the trunk (pre-push / manual)
+    diff_output=$(git diff "$trunk"...HEAD -U0 2>/dev/null) || exit 0
 else
-    exit 0  # Can't determine a meaningful diff — let it through
+    echo "secret-scan: no staged changes and no trunk branch found — nothing scanned" >&2
+    exit 0
 fi
 
 [[ -z "$diff_output" ]] && exit 0

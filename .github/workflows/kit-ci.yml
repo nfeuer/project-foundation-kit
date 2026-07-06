@@ -69,3 +69,69 @@ jobs:
             if head -1 "$m" | grep -q '^---$'; then echo "ok   $m"; else echo "NO FRONTMATTER $m"; fail=1; fi
           done
           exit $fail
+
+      - name: Hooks actually block (behavioral)
+        run: |
+          set -e
+          HOOKS="$PWD/.claude/hooks"
+          TMP=$(mktemp -d)
+          git -C "$TMP" init -q -b main
+          git -C "$TMP" config user.email ci@example.com
+          git -C "$TMP" config user.name ci
+          git -C "$TMP" commit --allow-empty -qm init
+          mkdir -p "$TMP/src" "$TMP/config"
+
+          check() { # check <desc> <expected_rc> <actual_rc>
+            if [ "$3" -eq "$2" ]; then echo "ok   $1"; else echo "FAIL $1 (expected rc=$2, got rc=$3)"; exit 1; fi
+          }
+          payload() { printf '{"tool_input":{"file_path":"%s"}}' "$1"; }
+
+          # 1. require-worktree BLOCKS an edit on main (stdin JSON contract)
+          rc=0; payload "$TMP/src/app.py" | bash "$HOOKS/require-worktree.sh" 2>/dev/null || rc=$?
+          check "require-worktree blocks src edit on main" 2 "$rc"
+
+          # 2. exempt files are allowed on main
+          rc=0; payload "$TMP/CLAUDE.md" | bash "$HOOKS/require-worktree.sh" 2>/dev/null || rc=$?
+          check "require-worktree allows CLAUDE.md" 0 "$rc"
+          mkdir -p "$TMP/.claude"
+          rc=0; payload "$TMP/.claude/kit.yaml" | bash "$HOOKS/require-worktree.sh" 2>/dev/null || rc=$?
+          check "require-worktree allows kit.yaml" 0 "$rc"
+
+          # 3. edits inside a linked worktree are allowed
+          git -C "$TMP" worktree add -q "$TMP/.claude/worktrees/wt" -b feat/wt
+          mkdir -p "$TMP/.claude/worktrees/wt/src"
+          rc=0; payload "$TMP/.claude/worktrees/wt/src/app.py" | bash "$HOOKS/require-worktree.sh" 2>/dev/null || rc=$?
+          check "require-worktree allows worktree edit" 0 "$rc"
+
+          # 4. the no-jq sed fallback still blocks (broken jq shadows the real one)
+          mkdir -p "$TMP/nojq"; printf '#!/bin/sh\nexit 127\n' > "$TMP/nojq/jq"; chmod +x "$TMP/nojq/jq"
+          rc=0; payload "$TMP/src/app.py" | PATH="$TMP/nojq:$PATH" bash "$HOOKS/require-worktree.sh" 2>/dev/null || rc=$?
+          check "require-worktree blocks without jq" 2 "$rc"
+
+          # 5. credential-file guard blocks .env, allows normal files
+          rc=0; payload "$TMP/.env" | bash "$HOOKS/protect-credential-files.sh" 2>/dev/null || rc=$?
+          check "credential guard blocks .env" 2 "$rc"
+          rc=0; payload "$TMP/src/app.py" | bash "$HOOKS/protect-credential-files.sh" 2>/dev/null || rc=$?
+          check "credential guard allows src file" 0 "$rc"
+
+          # 6. secret-scan catches a planted key on a branch (direct invocation)
+          cd "$TMP"
+          git checkout -qb feat/leak
+          printf 'AWS_KEY = "%s"\n' "AKIAABCDEFGHIJKLMNOP" > src/creds.py
+          git add src/creds.py && git commit -qm leak
+          rc=0; bash "$HOOKS/secret-scan-diff.sh" </dev/null 2>/dev/null || rc=$?
+          check "secret-scan blocks planted AWS key" 2 "$rc"
+
+          # 7. secret-scan as PreToolUse hook: ignores non-push commands, gates pushes
+          rc=0; printf '{"tool_input":{"command":"ls -la"}}' | bash "$HOOKS/secret-scan-diff.sh" 2>/dev/null || rc=$?
+          check "secret-scan skips non-push command" 0 "$rc"
+          rc=0; printf '{"tool_input":{"command":"git push origin feat/leak"}}' | bash "$HOOKS/secret-scan-diff.sh" 2>/dev/null || rc=$?
+          check "secret-scan blocks push with leak" 2 "$rc"
+
+          # 8. secret-scan honors kit.yaml trunk_branch (trunk=other → branch diff vs it)
+          git checkout -q main && git checkout -qb trunk-x && git checkout -q feat/leak
+          printf 'trunk_branch: "trunk-x"\n' > .claude/kit.yaml
+          rc=0; bash "$HOOKS/secret-scan-diff.sh" </dev/null 2>/dev/null || rc=$?
+          check "secret-scan reads trunk_branch from kit.yaml" 2 "$rc"
+
+          echo "all behavioral hook checks passed"

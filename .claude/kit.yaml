@@ -50,7 +50,7 @@ capabilities:
     eval_dir: "fixtures"
     spend_table: "invocation_log"
   spec:
-    file: "spec_v3.md"       # "" → disable spec-drift / citation checks
+    file: "SPEC.md"          # the kit's canonical v2 design spec; "" → disable spec-drift / citation checks
     section_marker: "§"
   docs:
     enabled: true

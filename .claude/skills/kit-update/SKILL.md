@@ -170,10 +170,14 @@ with open('$PROJECT_ROOT/.claude/kit.yaml') as f:
 with open('$KIT_ROOT/.claude/kit.yaml') as f:
     new_ver = yaml.safe_load(f)['kit_version']
 updated = re.sub(
-    r'(kit_version:\s*[\"\']).+?([\"\']])',
+    r'(kit_version:\s*[\"\']).+?([\"\'])',
     lambda m: m.group(1) + new_ver + m.group(2),
-    content
+    content,
+    count=1,
 )
+if updated == content:
+    print('ERROR: kit_version line not found/changed — version NOT bumped')
+    raise SystemExit(1)
 with open('$PROJECT_ROOT/.claude/kit.yaml', 'w') as f:
     f.write(updated)
 print('kit_version bumped to', new_ver)

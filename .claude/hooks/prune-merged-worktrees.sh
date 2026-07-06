@@ -15,7 +15,10 @@
 #
 # Usage: prune-merged-worktrees.sh          (prune everything eligible)
 #        prune-merged-worktrees.sh <branch> (consider only this branch)
-# Env:   WORKTREE_PRUNE_RECENCY_MIN  recency threshold in minutes (default 30; 0 disables)
+# Env:   WORKTREE_PRUNE_RECENCY_MIN  recency threshold in minutes (default 120; 0 disables).
+#        Keep this comfortably longer than your review/CI round-trip: a merged,
+#        clean worktree whose agent is merely waiting (on CI, on review) looks
+#        idle, and a sibling session's SessionStart would otherwise prune it.
 
 set -uo pipefail
 
@@ -23,7 +26,7 @@ REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 WT_PREFIX="$REPO_ROOT/.claude/worktrees/"
 ONLY_BRANCH="${1:-}"
 CWD=$(pwd -P)
-RECENCY_MIN="${WORKTREE_PRUNE_RECENCY_MIN:-30}"
+RECENCY_MIN="${WORKTREE_PRUNE_RECENCY_MIN:-120}"
 
 command -v gh >/dev/null 2>&1 || exit 0
 gh auth status >/dev/null 2>&1 || exit 0

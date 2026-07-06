@@ -123,10 +123,10 @@ docs affected by the change. Narrative docs, changelog, and the API reference
 must not drift from the code in the same PR.
 
 ### 13. Spec + drift
-Run the **spec-check** skill (or dispatch **spec-drift-checker**). Every design
-change must cite the spec section it implements, and any behavior that diverges
-from the spec must either update the spec in this PR or be logged in the
-follow-ups file with a reason.
+Dispatch the **spec-drift-checker** agent. Every design change must cite the
+spec section it implements, and any behavior that diverges from the spec must
+either update the spec in this PR or be logged in the follow-ups file with a
+reason. If `capabilities.spec.file` is empty in `kit.yaml`, mark N/A.
 
 ### 14. Prompt regression (if the change touches a prompt or model config)
 Run the **prompt-regression** skill — re-run the affected task_type's eval

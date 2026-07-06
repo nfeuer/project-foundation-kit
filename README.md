@@ -44,9 +44,13 @@ CLAUDE.template.md              Project-instructions template (the file loaded e
   settings.template.json        Hook wiring (portable via $CLAUDE_PROJECT_DIR)
   hooks/
     require-worktree.sh         Blocks edits on main → forces per-agent worktrees
+    protect-credential-files.sh Refuses agent edits to .env/keys/credential files
+    autoformat.sh               Formats the just-edited file (per-extension, best-effort)
     prune-merged-worktrees.sh   Auto-removes worktrees whose PR merged (careful safety rules)
     post-merge-prune.sh         Sweeps worktrees right after `gh pr merge`
     secret-scan-diff.sh         Blocks push/PR when a secret leaked into a source file
+                                (hooks read stdin JSON, degrade loudly, and are
+                                behaviorally tested in kit-ci — they must BLOCK in tests)
   skills/
     new-project-bootstrap/      Greenfield install: detect stack → write kit.yaml → scaffold
     adopt-existing-project/     Brownfield install: audit → gap report → non-destructive merge

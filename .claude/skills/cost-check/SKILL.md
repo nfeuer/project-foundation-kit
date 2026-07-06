@@ -1,6 +1,11 @@
 ---
 name: cost-check
 description: Query the invocation/spend log for current API spend vs daily and monthly budget thresholds and report a projected month-end total
+cost: cheap
+protects: "You see today's and this month's API spend against budget, with a projected month-end total, before you kick off expensive work."
+requires: "invocation_log spend table (SUBSTRATE.md §1); capabilities.llm.enabled"
+gate_key: none
+ci_job: none
 ---
 
 # Cost Check

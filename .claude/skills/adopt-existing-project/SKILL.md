@@ -1,6 +1,11 @@
 ---
 name: adopt-existing-project
 description: Non-destructively bring the foundation kit into an existing repo — audit what's already there, report gaps ranked by leverage, merge (never overwrite) kit artifacts, and recommend a phased rollout the team can approve incrementally
+cost: cheap
+protects: "The kit's guardrails get added to a repo already in flight without overwriting anything you wrote, and every change is shown as a diff you approve before it's applied."
+requires: nothing
+gate_key: none
+ci_job: none
 ---
 
 # Adopt Existing Project

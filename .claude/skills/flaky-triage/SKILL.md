@@ -1,6 +1,11 @@
 ---
 name: flaky-triage
 description: When a test goes red then green with no intervening code change, confirm it's flaky, record it in the registry, and optionally quarantine it so it stops blocking PRs but stays visible — instead of silently blocking the queue or being silently ignored
+cost: cheap
+protects: "A test that turns red then green gets confirmed as flaky, logged, and optionally quarantined instead of silently blocking or being ignored."
+requires: nothing
+gate_key: flaky_triage
+ci_job: none
 ---
 
 # Flaky Test Triage

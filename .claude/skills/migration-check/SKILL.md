@@ -1,6 +1,11 @@
 ---
 name: migration-check
 description: Catch dangerous DB schema migrations before they hit the primary DB or any replica — verify single head, reversibility, and no unguarded destructive ops
+cost: cheap
+protects: "A database migration that would break production or a replica — multiple heads, a fake rollback, an unguarded destructive change — gets caught before it ships."
+requires: "capabilities.migrations.enabled"
+gate_key: migration_check
+ci_job: none
 ---
 
 # Migration Check

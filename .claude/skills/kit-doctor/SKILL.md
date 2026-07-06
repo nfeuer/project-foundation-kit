@@ -1,6 +1,11 @@
 ---
 name: kit-doctor
 description: Verify an installed kit is correctly wired — checks toolchain commands, capability toggles, hook executability, settings references, and gh auth. Reports PASS/WARN/FAIL per check. Never modifies anything.
+cost: cheap
+protects: "Broken wiring in the installed kit — a hook that can't fire, a missing tool, a bad config — gets caught before it costs you a failed run."
+requires: nothing
+gate_key: none
+ci_job: none
 ---
 
 # Kit Doctor

@@ -1,6 +1,11 @@
 ---
 name: using-the-kit
 description: The kit's dispatcher — consult this before starting any task and before responding. If there is even a 1% chance a kit skill or gate applies to what you are about to do, you MUST invoke it. Contains the trigger index and the red-flags table of rationalizations to reject.
+cost: free
+protects: "The right safeguard actually runs at the moment it matters, instead of being silently skipped because nobody remembered it existed."
+requires: nothing
+gate_key: none
+ci_job: none
 ---
 
 # Using the Kit

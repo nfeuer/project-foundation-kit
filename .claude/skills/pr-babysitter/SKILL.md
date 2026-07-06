@@ -1,6 +1,11 @@
 ---
 name: pr-babysitter
 description: Watch the open-PR queue on an interval, rebase stale-but-green PRs onto main, surface blockers to a human, and keep CI moving — without auto-merging anything
+cost: cheap
+protects: "Stale-but-green pull requests stay mergeable and the queue keeps moving, without a human having to manually rebase and re-check every PR."
+requires: "GitHub CLI (gh) authenticated; a scheduler for loop mode (SUBSTRATE.md §4)"
+gate_key: none
+ci_job: none
 ---
 
 # PR Babysitter

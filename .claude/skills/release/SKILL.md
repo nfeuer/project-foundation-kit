@@ -1,6 +1,11 @@
 ---
 name: release
 description: Turn merged PRs and conventional commits since the last tag into a versioned changelog entry and a tagged release — semver bump derived automatically from commit types
+cost: cheap
+protects: "Cutting a release produces an accurate versioned changelog and tag straight from what actually merged, instead of a hand-written changelog that drifts from reality."
+requires: "GitHub CLI (gh) authenticated"
+gate_key: none
+ci_job: none
 ---
 
 # Release

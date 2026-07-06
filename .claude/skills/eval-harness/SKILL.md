@@ -1,6 +1,11 @@
 ---
 name: eval-harness
 description: Set up and run tiered, version-controlled evaluation fixtures for non-deterministic behavior (LLM calls, classifiers, extractors) — score against pass-gates and catch regressions in CI
+cost: subagents
+protects: "Changes to a prompt, model, or classifier get scored against version-controlled test cases before they ship, so a quality regression is caught instead of shipping on a vibe."
+requires: "eval fixtures + a runner (SUBSTRATE.md §2); capabilities.llm.enabled"
+gate_key: none
+ci_job: none
 ---
 
 # Eval Harness

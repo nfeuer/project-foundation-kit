@@ -1,6 +1,11 @@
 ---
 name: new-project-bootstrap
 description: Lay a strong foundation in a new or existing repo — detect the stack, write the project profile (kit.yaml), install worktree isolation, autoformat, CI, CLAUDE.md, docs standard, follow-ups log, and the observability/eval/doc-sync scaffolding from the foundation kit
+cost: cheap
+protects: "A new project starts with the safety nets teams usually add too late — isolated work, logging that never fails silently, and a CI gate that stays green."
+requires: nothing
+gate_key: none
+ci_job: none
 ---
 
 # New Project Bootstrap

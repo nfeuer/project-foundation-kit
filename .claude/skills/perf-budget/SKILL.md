@@ -1,6 +1,11 @@
 ---
 name: perf-budget
 description: Catch hot-path and external/model-call latency regressions before they reach production — compare p95 per operation against configured budgets and a stored baseline, fail the PR on regression, and offer to ratchet the baseline down on improvement
+cost: cheap
+protects: "Hot-path and model-call latency regressions get caught before they reach production, instead of showing up as a slower app for real users."
+requires: "capabilities.perf.enabled; a latency source — invocation_log (SUBSTRATE.md §1) or a benchmark_cmd"
+gate_key: perf_budget
+ci_job: none
 ---
 
 # Performance Budget

@@ -1,6 +1,11 @@
 ---
 name: doc-sync
 description: Keep docs, spec, and code in lockstep in the same PR — update affected narrative docs, cite/update the canonical spec, and log any accepted drift as a follow-up
+cost: subagents
+protects: "Docs and the canonical spec stay in step with the code change in the same pull request, instead of drifting silently over time."
+requires: "capabilities.docs.enabled"
+gate_key: docs_sync
+ci_job: none
 ---
 
 # Doc Sync

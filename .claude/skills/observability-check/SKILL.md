@@ -1,6 +1,11 @@
 ---
 name: observability-check
 description: Verify a change is observable before merge — structured logging at decision points, no silent failures, correlation context, and dashboards/alerts for new failure modes
+cost: subagents
+protects: "A change gets checked for the logging a 2am on-call responder would need, before it merges instead of after an outage."
+requires: nothing
+gate_key: observability_check
+ci_job: none
 ---
 
 # Observability Check

@@ -1,6 +1,11 @@
 ---
 name: nightly-audit
 description: Run the project's drift and health checks on a cron and post a compact morning digest to chat — turning "run it if you remember" into a standing signal.
+cost: subagents
+protects: "Docs, spec, dependencies, and follow-ups get checked every morning and only the problems worth acting on reach chat, instead of drift piling up unnoticed."
+requires: "a scheduler (SUBSTRATE.md §4); alert transport (SUBSTRATE.md §3)"
+gate_key: none
+ci_job: none
 ---
 
 # Nightly Audit

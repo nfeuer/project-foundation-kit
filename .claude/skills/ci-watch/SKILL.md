@@ -1,6 +1,11 @@
 ---
 name: ci-watch
 description: After opening or pushing a PR, watch its CI run to completion and fix any failure — lint, types, tests, build — then re-push until green, instead of leaving a red PR
+cost: cheap
+protects: "A pull request's CI run gets watched until it finishes, and any failure gets diagnosed and fixed automatically instead of being left red."
+requires: "GitHub CLI (gh) authenticated"
+gate_key: none
+ci_job: none
 ---
 
 # CI Watch-and-Fix

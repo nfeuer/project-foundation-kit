@@ -1,6 +1,11 @@
 ---
 name: compound-learnings
 description: After solving a non-obvious problem — a gnarly bug, a tricky integration, a surprising workaround — write the solution pattern to docs/solutions/ so future planning and debugging start from it instead of re-deriving it. Each unit of work should make the next one easier.
+cost: free
+protects: "A hard-won fix to a tricky bug gets written down once, so the next person starts from the answer instead of repeating the same investigation."
+requires: "capabilities.docs.enabled"
+gate_key: capture
+ci_job: none
 ---
 
 # Compound Learnings

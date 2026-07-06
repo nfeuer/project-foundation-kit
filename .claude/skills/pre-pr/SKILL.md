@@ -1,6 +1,11 @@
 ---
 name: pre-pr
 description: Run the full pre-PR gate — lint, types, tests, migration heads, docs, spec citations, follow-ups — so CI passes on first push instead of going red
+cost: subagents
+protects: "A pull request that would fail CI on lint, types, tests, migrations, security, docs, or spec drift gets caught and fixed locally, so it arrives green instead of blocking the queue."
+requires: nothing
+gate_key: lint_types_tests
+ci_job: "lint, typecheck, test"
 ---
 
 # Pre-PR Gate

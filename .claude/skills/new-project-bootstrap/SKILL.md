@@ -174,8 +174,14 @@ is what keeps PRs green on first push.
 
 ### 8. Wire the reference implementations
 
-For the language that applies, adapt from `templates/`:
-- `logging_setup.py` — structured logging, dual render, correlation context.
+**Logging is not a copy step — run the `logging-init` skill.** It probes what
+the repo already has (even new repos sometimes carry print-based scaffolding),
+asks the user three questions in one batch (log destination, dev rendering,
+correlation unit) with detected defaults, recommends a setup mapped to the
+detected language per `docs/LOGGING_STANDARD.md`, and wires it only after
+approval — recording the outcome in `kit.yaml`'s `logging` block.
+
+Then, for the language that applies, adapt the remaining patterns from `templates/`:
 - `fallback_alert.py` — the no-silent-failure pattern (`emit_fallback_alert`).
 - `eval_fixture.example.json` — the tiered fixture shape under `fixtures/`.
 
@@ -200,7 +206,8 @@ For the language that applies, adapt from `templates/`:
 - CLAUDE.md: authored (<n> lines)
 - Docs: DOCS_STANDARD + followups + taxonomy scaffolded
 - CI: ci.yml installed (<jobs>)
-- Reference impls wired: <logging / fallback / eval>
+- Logging: logging-init — <starting point / library wired / answers or assumed defaults>
+- Reference impls wired: <fallback / eval>
 - Verification: <worktree block OK / autoformat OK / CI runs OK / pre-pr OK>
 Next: run kit-doctor to verify the wiring, then create a feature worktree (parallel-work skill) and start building.
 ```

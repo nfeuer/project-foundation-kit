@@ -40,6 +40,12 @@ capabilities:
     ratchet_enabled: true
     baseline_file: ".coverage-baseline"
 
+logging:
+  initialized: false                    # run logging-init — browser posture: console in dev, structure via the error/telemetry reporter
+  library: ""
+  destination: "other"
+  dev_console: true
+
 alerts:
   channel: "none"                       # switch to discord/slack once wired
   target: ""

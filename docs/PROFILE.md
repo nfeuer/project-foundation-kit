@@ -35,6 +35,9 @@ convention, not a templating engine:
 
 3. **Named values.** `trunk_branch`, `worktree_dir`, `alerts.channel`, and
    `capabilities.spec.file` are read wherever a skill or hook needs them.
+   The `logging.*` block records what the `logging-init` skill probed, asked,
+   and wired (library, destination, dev rendering) — `initialized: false` is a
+   standing kit-doctor warning to run it.
 
 ## Gate strictness — ceremony scales with maturity
 

@@ -8,7 +8,7 @@
 # is false, the migration-check step is skipped and reported N/A. This is how one
 # kit serves a Python LLM service and a Go CLI without editing every skill.
 
-kit_version: "1.2.0"        # stamp; `kit-update` compares this against the source kit
+kit_version: "1.3.0"        # stamp; `kit-update` compares this against the source kit
 preset: "llm-app"           # library | service | llm-app | frontend | data-pipeline | custom
 
 # --- Gates: how strictly the quality gates enforce (scale-adaptive) ---
@@ -72,6 +72,13 @@ capabilities:
     tables: []               # key tables to check for lag + row-count parity
     lag_threshold_s: 300     # replication lag (seconds) that trips an alert
     parity_tolerance: 0      # allowed row-count delta before it's a gap
+
+# --- Logging: what the logging-init skill probed, asked, and wired ---
+logging:
+  initialized: true          # false → logging-init hasn't run; kit-doctor warns
+  library: "structlog"       # detected/chosen logging library ("" until initialized)
+  destination: "stdout"      # stdout | file | loki | datadog | cloudwatch | other
+  dev_console: true          # human-readable console renderer locally, JSON in prod
 
 # --- Alerts: where nightly-audit / incident-capture / fallback alerts post ---
 alerts:

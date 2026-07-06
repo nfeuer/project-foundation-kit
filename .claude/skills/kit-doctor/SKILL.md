@@ -89,6 +89,8 @@ For each enabled capability, verify the required artifact exists:
 | `capabilities.spec.file` non-empty | The named file exists at repo root |
 | `capabilities.docs.enabled = true` | `docs.dir` exists as a directory |
 | `capabilities.coverage.ratchet_enabled = true` | `baseline_file` exists (warn if absent — ratchet can't run without a baseline) |
+| `logging.initialized = true` | `logging.library` is non-empty and appears in the project's dependencies/imports (WARN if not) |
+| `logging.initialized = false` | WARN — structured logging not wired; run the `logging-init` skill |
 
 A toggle set `true` with the required artifact missing is **WARN** (not FAIL)
 unless the missing thing is a binary — a binary miss is **FAIL**.

@@ -56,7 +56,7 @@ jobs:
       - name: Shell hooks are syntactically valid
         run: |
           fail=0
-          for s in .claude/hooks/*.sh .claude/skills/*/*.sh; do
+          for s in .claude/hooks/*.sh .claude/skills/*/*.sh scripts/*.sh; do
             [ -f "$s" ] || continue
             if bash -n "$s"; then echo "ok   $s"; else echo "FAIL $s"; fail=1; fi
           done
@@ -69,6 +69,12 @@ jobs:
             if head -1 "$m" | grep -q '^---$'; then echo "ok   $m"; else echo "NO FRONTMATTER $m"; fail=1; fi
           done
           exit $fail
+
+      - name: Skill metadata + README catalog are current (SPEC.md §3)
+        run: bash scripts/gen-catalog.sh --check
+
+      - name: Kit manifest is current (SPEC.md §12.1)
+        run: bash scripts/gen-manifest.sh --check
 
       - name: Hooks actually block (behavioral)
         run: |
@@ -117,7 +123,7 @@ jobs:
           # 6. secret-scan catches a planted key on a branch (direct invocation)
           cd "$TMP"
           git checkout -qb feat/leak
-          printf 'AWS_KEY = "%s"\n' "AKIAABCDEFGHIJKLMNOP" > src/creds.py
+          printf 'AWS_KEY = "%s"\n' "AKIAABCDEFGHIJKLMNOP" > src/creds.py  # pragma: allowlist secret (test vector)
           git add src/creds.py && git commit -qm leak
           rc=0; bash "$HOOKS/secret-scan-diff.sh" </dev/null 2>/dev/null || rc=$?
           check "secret-scan blocks planted AWS key" 2 "$rc"

@@ -20,7 +20,10 @@ lead, non-engineer, Go CLI dev, LLM startup team).
 ### PT2 — The assumed LLM substrate is unnamed and unshipped
 
 - **Spec:** README "Observability & evaluation" catalog group
-- **Status:** open
+- **Status:** open — partially addressed in v2.0-alpha: every skill now labels
+  its preconditions up front (`requires:` frontmatter, SPEC.md §3); the
+  substrate itself (DDL, eval conftest, webhook sender, schema unification)
+  ships in v2.1 per SPEC.md §9
 - **Gap:** Five skills query an `invocation_log` table nothing creates (and two
   disagree on its timestamp column name); eval-harness/prompt-regression assume
   a pytest eval runner that doesn't exist; `alerts.channel` has no transport
@@ -103,7 +106,11 @@ lead, non-engineer, Go CLI dev, LLM startup team).
 ### PT10 — kit-update needs a real base-version manifest
 
 - **Spec:** kit-update skill, step 3
-- **Status:** open
+- **Status:** closed (v2.0-alpha — `scripts/gen-manifest.sh` generates
+  `.claude/kit-manifest.sha256` (kept current by kit-ci), install/adopt/update
+  record it into the project, and kit-update step 3 classifies against the
+  recorded baseline; settings.json gets an explicit never-SAFE mapping rule.
+  SPEC.md §12.1)
 - **Gap:** SAFE-vs-NEEDS-REVIEW classification degrades to a git-blame
   heuristic because no shipped-file-hash manifest exists; after squash merges,
   everything looks locally modified. Ship a per-version manifest

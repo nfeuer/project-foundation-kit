@@ -141,52 +141,53 @@ templates/ci.template.yml       Lint + types + tests gate that projects copy to 
    work makes the next one easier — and skills fire on the 1% rule (`using-the-kit`),
    so none of this depends on remembering to ask.
 
-## The workflow catalog by purpose
+## The workflow catalog
 
-Every workflow below ships in the kit. Grouped by the problem it solves:
+Every workflow below ships in the kit, priced by its worst-case cost class (SPEC.md §3).
 
-**Concurrency & the PR queue** — keep a fleet of agents from colliding.
-`parallel-work` (worktree isolation) · `branch-conflict-check` (warn when two
-open PRs touch the same files) · `pr-babysitter` (rebase/re-run/ping the open-PR
-queue without auto-merging) · `pre-pr` + `ci-watch` (green locally, kept green).
+<!-- catalog:begin -->
+_Generated from skill frontmatter by `scripts/gen-catalog.sh` — edit the skills' frontmatter, not this table (kit-ci fails on drift)._
 
-**Quality gates** — catch expensive mistakes before merge.
-`migration-check` (destructive/irreversible schema ops) · `test-gap-analyzer`
-(untested new paths, risk-ranked) · `coverage-ratchet` (coverage can't drop) ·
-`perf-budget` (p95 can't regress) · `prompt-regression` (eval deltas on prompt/
-model changes) · `security-reviewer` (injection, auth bypass, credential/token
-leaks) · `config-consistency-checker` (dangling config refs) · `secret-scan-diff.sh`
-(keys leaked into source) · `flaky-triage` (flaky tests confirmed + quarantined).
+### Gates (mode-mapped via `gates.modes.<gate key>`)
 
-**Observability & evaluation** — make behavior debuggable and measurable.
-`logging-init` (initialize/upgrade structured logging from any starting point —
-probes what exists, asks three questions, wires additively per stack) ·
-`observability-check` + `observability-reviewer` (no silent failures, logging at
-decision points — enforcing the per-process event catalog in
-`docs/LOGGING_STANDARD.md`: jobs, consumers, pipelines, lifecycle, not just API
-calls) · `eval-harness` (tiered fixtures) · `cost-check` + `cost_guard.py`
-(spend vs budget, pause-before-call) · `logging_setup.py` / `fallback_alert.py`
-(the reference patterns, incl. the generic `log_operation` timing helper).
+| Skill | Protects | Cost | Requires | Gate key | CI job |
+|---|---|---|---|---|---|
+| branch-conflict-check | You find out which other open pull requests touch the same files as yours before you merge, instead of hitting the conflict by surprise afterward. | cheap | GitHub CLI (gh) authenticated | `branch_conflict` | — |
+| compound-learnings | A hard-won fix to a tricky bug gets written down once, so the next person starts from the answer instead of repeating the same investigation. | free | capabilities.docs.enabled | `capture` | — |
+| coverage-ratchet | Test coverage can only hold steady or improve — a drop below the recorded baseline is caught and blocked instead of quietly eroding over time. | cheap | capabilities.coverage.ratchet_enabled; a recorded coverage baseline | `coverage_ratchet` | — |
+| doc-sync | Docs and the canonical spec stay in step with the code change in the same pull request, instead of drifting silently over time. | subagents | capabilities.docs.enabled | `docs_sync` | — |
+| flaky-triage | A test that turns red then green gets confirmed as flaky, logged, and optionally quarantined instead of silently blocking or being ignored. | cheap | — | `flaky_triage` | — |
+| followup-tracking | Decisions you deferred and gaps you accepted get written down in one durable place instead of disappearing in a merged pull request. | free | capabilities.docs.enabled | `capture` | — |
+| migration-check | A database migration that would break production or a replica — multiple heads, a fake rollback, an unguarded destructive change — gets caught before it ships. | cheap | capabilities.migrations.enabled | `migration_check` | — |
+| observability-check | A change gets checked for the logging a 2am on-call responder would need, before it merges instead of after an outage. | subagents | — | `observability_check` | — |
+| parallel-work | Concurrent agents working in the same repo can't overwrite or corrupt each other's changes, because each stream of work gets its own isolated branch and worktree. | cheap | — | `worktree_isolation` | — |
+| perf-budget | Hot-path and model-call latency regressions get caught before they reach production, instead of showing up as a slower app for real users. | cheap | capabilities.perf.enabled; a latency source — invocation_log (SUBSTRATE.md §1) or a benchmark_cmd | `perf_budget` | — |
+| pre-pr | A pull request that would fail CI on lint, types, tests, migrations, security, docs, or spec drift gets caught and fixed locally, so it arrives green instead of blocking the queue. | subagents | — | `lint_types_tests` | lint, typecheck, test |
+| prompt-regression | Prompt or model changes ship with a before/after eval score instead of a vibe. | subagents | eval fixtures + a runner (SUBSTRATE.md §2); capabilities.llm.enabled | `prompt_regression` | — |
+| sync-health | Replication drift between a primary and its replica — lagging writes or silently dropped rows — gets caught and alerted on before the data has quietly diverged for hours. | cheap | capabilities.replica.enabled with primary and replica connections configured | `sync_health` | — |
 
-**Docs, spec & memory** — stop drift and lost context.
-`doc-sync` + `docs-updater` · `spec-drift-checker` · `adr` (decision records) ·
-`followup-tracking` · `compound-learnings` (solved-problem patterns that feed
-future planning) · `session-handoff` (baton note between sessions).
+### Workflows & conventions (never mode-gated)
 
-**Release & operations** — standing signals and clean releases.
-`release` (conventional commits → changelog + semver + tag) · `nightly-audit`
-(cron the drift/health checks → morning digest) · `incident-capture` (auto-open an
-incident note on repeated fallbacks) · `sync-health` (primary+replica lag/parity) ·
-`dependency-auditor` · `healthwatch.py` (heartbeat sidecar) · `codebase-onboarder`.
-
-**Adapt & maintain the kit itself** — make it fit the project and stay current.
-`new-project-bootstrap` / `adopt-existing-project` (greenfield vs brownfield
-install) · the `kit.yaml` profile + `presets/` (one file drives the toolchain and
-capability toggles every skill reads) · `using-the-kit` (the dispatcher: 1%-rule
-trigger index so skills actually fire) · `kit-doctor` (verify the wiring) ·
-`config-audit` (verify the config surface is *safe*, not just wired) ·
-`kit-update` (pull source-kit improvements without clobbering local changes) ·
-`writing-kit-skills` (extend the kit without forking it).
+| Skill | Protects | Cost | Requires |
+|---|---|---|---|
+| adopt-existing-project | The kit's guardrails get added to a repo already in flight without overwriting anything you wrote, and every change is shown as a diff you approve before it's applied. | cheap | — |
+| adr | The reasoning behind a hard design choice gets written down, including the alternatives you rejected, so no one has to guess or re-argue it later. | free | — |
+| ci-watch | A pull request's CI run gets watched until it finishes, and any failure gets diagnosed and fixed automatically instead of being left red. | cheap | GitHub CLI (gh) authenticated |
+| config-audit | The files that steer the agent — settings, hooks, CLAUDE.md, skills, MCP configs — get checked for leaked secrets and hidden instructions before you commit them. | free | — |
+| cost-check | You see today's and this month's API spend against budget, with a projected month-end total, before you kick off expensive work. | cheap | invocation_log spend table (SUBSTRATE.md §1); capabilities.llm.enabled |
+| eval-harness | Changes to a prompt, model, or classifier get scored against version-controlled test cases before they ship, so a quality regression is caught instead of shipping on a vibe. | subagents | eval fixtures + a runner (SUBSTRATE.md §2); capabilities.llm.enabled |
+| incident-capture | A repeating failure automatically opens an incident note with the timeline already filled in, so whoever responds starts with context instead of a blank page. | cheap | invocation_log (SUBSTRATE.md §1); alert transport (SUBSTRATE.md §3) |
+| kit-doctor | Broken wiring in the installed kit — a hook that can't fire, a missing tool, a bad config — gets caught before it costs you a failed run. | cheap | — |
+| kit-update | Improvements from the source kit reach an adopted project without silently overwriting anything the team customized. | cheap | a source-kit checkout on disk |
+| logging-init | Scattered print statements or an ad-hoc logger get upgraded to structured logging with correlation context and timing, without breaking what already works. | cheap | — |
+| new-project-bootstrap | A new project starts with the safety nets teams usually add too late — isolated work, logging that never fails silently, and a CI gate that stays green. | cheap | — |
+| nightly-audit | Docs, spec, dependencies, and follow-ups get checked every morning and only the problems worth acting on reach chat, instead of drift piling up unnoticed. | subagents | a scheduler (SUBSTRATE.md §4); alert transport (SUBSTRATE.md §3) |
+| pr-babysitter | Stale-but-green pull requests stay mergeable and the queue keeps moving, without a human having to manually rebase and re-check every PR. | cheap | GitHub CLI (gh) authenticated; a scheduler for loop mode (SUBSTRATE.md §4) |
+| release | Cutting a release produces an accurate versioned changelog and tag straight from what actually merged, instead of a hand-written changelog that drifts from reality. | cheap | GitHub CLI (gh) authenticated |
+| session-handoff | Work in progress survives a context switch or handoff, because what's done, what's next, and why gets written down before it would otherwise be lost. | free | — |
+| using-the-kit | The right safeguard actually runs at the moment it matters, instead of being silently skipped because nobody remembered it existed. | free | — |
+| writing-kit-skills | A newly written skill actually gets discovered and triggered when it's needed, instead of becoming dead documentation nobody invokes. | free | — |
+<!-- catalog:end -->
 
 ## Adapting it — the profile
 

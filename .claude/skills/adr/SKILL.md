@@ -1,6 +1,11 @@
 ---
 name: adr
 description: Create an Architecture Decision Record when a non-obvious design choice is made — captures context, options, rationale, and tradeoffs in a durable doc
+cost: free
+protects: "The reasoning behind a hard design choice gets written down, including the alternatives you rejected, so no one has to guess or re-argue it later."
+requires: nothing
+gate_key: none
+ci_job: none
 ---
 
 # ADR

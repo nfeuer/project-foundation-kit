@@ -1,6 +1,11 @@
 ---
 name: session-handoff
 description: Write a tight durable state summary so a fresh session or another agent can resume the current task without re-deriving context
+cost: free
+protects: "Work in progress survives a context switch or handoff, because what's done, what's next, and why gets written down before it would otherwise be lost."
+requires: nothing
+gate_key: none
+ci_job: none
 ---
 
 # Session Handoff

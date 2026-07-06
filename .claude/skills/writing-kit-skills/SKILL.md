@@ -1,6 +1,11 @@
 ---
 name: writing-kit-skills
 description: Author a new kit-compatible skill — frontmatter conventions, sharp trigger descriptions, kit.yaml profile tagging, capability gates, report formats, and how to register the skill so it actually fires. Use this to extend the kit instead of forking it.
+cost: free
+protects: "A newly written skill actually gets discovered and triggered when it's needed, instead of becoming dead documentation nobody invokes."
+requires: nothing
+gate_key: none
+ci_job: none
 ---
 
 # Writing Kit Skills

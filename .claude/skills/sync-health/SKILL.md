@@ -1,6 +1,11 @@
 ---
 name: sync-health
 description: For a primary + replica setup, verify replication isn't lagging or silently dropping rows — the data-integrity drift that's invisible until the numbers don't match.
+cost: cheap
+protects: "Replication drift between a primary and its replica — lagging writes or silently dropped rows — gets caught and alerted on before the data has quietly diverged for hours."
+requires: "capabilities.replica.enabled with primary and replica connections configured"
+gate_key: sync_health
+ci_job: none
 ---
 
 # Sync Health

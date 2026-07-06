@@ -1,6 +1,11 @@
 ---
 name: incident-capture
 description: When a component fires fallback_activated (or crashes) repeatedly in a window, auto-open a pre-filled incident note so the 2am page starts with context instead of a blank page.
+cost: cheap
+protects: "A repeating failure automatically opens an incident note with the timeline already filled in, so whoever responds starts with context instead of a blank page."
+requires: "invocation_log (SUBSTRATE.md §1); alert transport (SUBSTRATE.md §3)"
+gate_key: none
+ci_job: none
 ---
 
 # Incident Capture

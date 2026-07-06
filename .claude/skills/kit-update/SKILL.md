@@ -1,6 +1,11 @@
 ---
 name: kit-update
 description: Propagate improvements from the source kit to a project that adopted it. Diffs kit-managed files, classifies changes as safe/needs-review/new, never clobbers local customizations silently, bumps kit_version after applying.
+cost: cheap
+protects: "Improvements from the source kit reach an adopted project without silently overwriting anything the team customized."
+requires: "a source-kit checkout on disk"
+gate_key: none
+ci_job: none
 ---
 
 # Kit Update
@@ -60,56 +65,151 @@ that and stop. Do not proceed.
 
 ### Step 2 — Enumerate kit-managed files
 
-Kit-managed files are everything under these paths in the source kit:
+Kit-managed files are everything under these paths in the source kit — the same
+set the manifest (`scripts/gen-manifest.sh`) covers:
 
 ```
 .claude/skills/*/SKILL.md
-.claude/agents/*/AGENT.md      (if present)
+.claude/agents/*.md
 .claude/hooks/*.sh
 .claude/settings.template.json
 ```
 
-Build the list:
+Build the list (relative paths, one per line):
 
 ```bash
-find "$KIT_ROOT/.claude/skills" -name 'SKILL.md' \
-  "$KIT_ROOT/.claude/hooks" -name '*.sh' \
-  "$KIT_ROOT/.claude" -name 'settings.template.json' \
-  2>/dev/null
+( cd "$KIT_ROOT" && {
+    find .claude/skills -name 'SKILL.md'
+    find .claude/agents -maxdepth 1 -name '*.md'
+    find .claude/hooks  -name '*.sh'
+    [ -f .claude/settings.template.json ] && echo .claude/settings.template.json
+  } 2>/dev/null | sort )
 ```
 
-Also include any `agents/` directory if it exists. Exclude `kit.yaml` itself —
-that is per-project configuration, not a kit-managed template.
+Exclude `kit.yaml` itself — that is per-project configuration, not a kit-managed
+template (per SPEC §12.1, kit-update manages files, not config; the mode map is
+`/kit-menu`'s job). Note that `.claude/kit-manifest.sha256` is itself
+kit-managed, but it is **not** diffed or prompted like a content file — it is
+handled by Step 5's recording rule (copied wholesale to stamp the adopted
+version). Do not add it to the per-file classification list in Step 3.
 
 ### Step 3 — Classify each file (dry-run)
 
-For each kit file, compute its relative path (strip the `$KIT_ROOT` prefix) and
-check whether the project has a copy at the same relative path:
+Classification is **manifest-based**. The project carries a recorded
+`.claude/kit-manifest.sha256` — the `sha256sum`-format list of kit-managed
+paths and their hashes **as of the kit version the project last adopted**
+(copied in at install/update time; see Step 5 and SPEC §12.1). That recorded
+baseline is what makes the SAFE-vs-NEEDS-REVIEW split real: it is the third
+point of a 3-way comparison between the project's current copy, the version the
+project adopted, and the source kit HEAD.
+
+For each kit-managed relative path `$REL`, gather three facts:
+
+1. **source hash** — sha256 of `$KIT_ROOT/$REL` (the kit HEAD).
+2. **project hash** — sha256 of `$PROJECT_ROOT/$REL` (absent if the file is
+   missing in the project).
+3. **recorded hash** — the hash for `$REL` in the project's recorded
+   `.claude/kit-manifest.sha256` (absent if the path is not listed).
+
+Then classify:
 
 | Scenario | Classification | Action |
 |---|---|---|
-| File exists in project and is **byte-for-byte identical to the previous kit version** (or identical to the current source) | SKIP | Nothing to do |
-| File exists in project, project copy **differs from the previous kit version** but not from the source kit HEAD | SKIP | Already up to date |
-| File exists in project, **project copy matches the previous kit version** (not locally modified) → source kit changed it | SAFE | Apply automatically (dry-run: show diff) |
-| File exists in project, **project copy differs from both** the previous kit version and the source kit | NEEDS REVIEW | Show 3-way diff; ask before touching |
-| File **does not exist in project** | NEW | Offer to add it |
+| project hash **==** source hash | SKIP | Up to date — project copy already equals kit HEAD |
+| file **absent** in project | NEW | Offer to add it |
+| project hash **== recorded** hash and source **differs** (project never touched it since adopting) | SAFE | Apply automatically (dry-run: show diff) |
+| project hash **!= recorded** hash and source differs (locally modified) | NEEDS REVIEW | Show 3-way diff; ask before touching |
+| `$REL` **not in** the recorded manifest (adopted pre-manifest, or a project-authored file shadowing a new kit path) and source differs | NEEDS REVIEW | Never SAFE — there is no baseline to prove the project copy is untouched |
 
-To determine "locally modified" without storing the previous kit snapshot: diff
-the project's copy against the source kit. If they differ, treat as NEEDS REVIEW.
-If they are identical, treat as already up to date.
+The two rules that keep this honest: a file is **SAFE only** when the project's
+current hash exactly matches what the manifest recorded (proving the project
+never edited it), and a path **missing from the recorded manifest is never
+SAFE** — without a recorded baseline we cannot distinguish an untouched adopted
+file from a divergent local one, so it goes to review.
+
+**Path mapping — settings.** The manifest tracks the source path
+`.claude/settings.template.json`, but installs write it to the project as
+`.claude/settings.json` (bootstrap copies it; adoption merges into an existing
+one). For this one file, hash the project's `.claude/settings.json` and compare
+it against the recorded hash of `.claude/settings.template.json` — and never
+classify it SAFE: when the source template changed since the recorded version,
+it is **always NEEDS REVIEW**. Settings are security-sensitive configuration
+(hook wiring, permissions); changes are merged by hand and re-checked with
+`config-audit`, never auto-applied. A project with no `.claude/settings.json`
+at all is NEW.
 
 ```bash
+# sha256 of a file, portable (Linux coreutils / macOS): prints just the hash
+kit_sha256() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  else
+    shasum -a 256 "$1" | awk '{print $1}'
+  fi
+}
+
+MANIFEST="$PROJECT_ROOT/.claude/kit-manifest.sha256"
+
+# recorded hash for an exact relative path from the project's manifest
+recorded_hash() {
+  # match the path column exactly (sha256sum format: "<hash><2 spaces><path>")
+  awk -v p="$1" '$2 == p {print $1; exit}' "$MANIFEST"
+}
+
 # For each kit-managed relative path $REL:
+SRC_HASH="$(kit_sha256 "$KIT_ROOT/$REL")"
+if [ ! -e "$PROJECT_ROOT/$REL" ]; then
+  echo "NEW"
+else
+  PROJ_HASH="$(kit_sha256 "$PROJECT_ROOT/$REL")"
+  REC_HASH="$(recorded_hash "$REL")"
+  if [ "$PROJ_HASH" = "$SRC_HASH" ]; then
+    echo "SKIP"                       # already equals kit HEAD
+  elif [ -z "$REC_HASH" ]; then
+    echo "NEEDS REVIEW"               # no recorded baseline for this path
+  elif [ "$PROJ_HASH" = "$REC_HASH" ]; then
+    echo "SAFE"                       # untouched since adoption; source changed
+  else
+    echo "NEEDS REVIEW"               # locally modified
+  fi
+fi
+```
+
+For NEEDS REVIEW files, produce the 3-way diff for the report by showing the
+source-vs-project diff (`diff "$PROJECT_ROOT/$REL" "$KIT_ROOT/$REL"`); note in
+the prompt whether the divergence is from a local edit (recorded hash present
+but mismatched) or from a missing baseline (path not in the manifest).
+
+**Bash only — no Python here** (SPEC §10, Tier-0: kit machinery is bash + git).
+
+#### Fallback — no recorded manifest (heuristic)
+
+If the project has **no** `.claude/kit-manifest.sha256` (adopted before the
+manifest shipped), fall back to the git-blame heuristic below, and **prefix the
+report with a WARN**:
+
+```
+WARN: no .claude/kit-manifest.sha256 in this project — classification is a
+git-blame heuristic and will over-report NEEDS REVIEW (e.g. after squash
+merges). It becomes exact once a manifest is recorded on the next apply.
+See SPEC §12.1 / follow-up PT10.
+```
+
+Heuristic: diff the project's copy against the source kit.
+
+```bash
+# For each kit-managed relative path $REL (fallback only):
 diff "$KIT_ROOT/$REL" "$PROJECT_ROOT/$REL" > /dev/null 2>&1
 # exit 0 → identical → SKIP
 # exit 1 → differs → SAFE if project never touched it, else NEEDS REVIEW
 # file missing in project → NEW
 ```
 
-To distinguish SAFE from NEEDS REVIEW: check git blame / `git diff HEAD --
-"$REL"` in the project. If git shows the project-side file was modified after
-the kit was adopted (any local commit changes it), classify as NEEDS REVIEW.
-Otherwise SAFE.
+To distinguish SAFE from NEEDS REVIEW without a manifest: check
+`git diff HEAD -- "$REL"` / git blame in the project. If git shows the
+project-side file was modified after the kit was adopted (any local commit
+changes it), classify as NEEDS REVIEW; otherwise SAFE. This is the heuristic the
+manifest replaces — never trust it as strongly as a recorded hash.
 
 ### Step 4 — Print the dry-run report
 
@@ -156,6 +256,23 @@ Do not apply without a clear instruction to proceed. When confirmed:
    per-file explicit answer.
 3. **NEW files** — ask: "Add this file?" For each new file, wait for confirmation.
 4. **SKIP files** — do nothing.
+5. **Record the manifest** — after all per-file decisions are made, copy the
+   **source kit's** `.claude/kit-manifest.sha256` into the project at the same
+   path, overwriting any previously recorded manifest. This stamps the version
+   the project just adopted and is what makes the next update's Step 3
+   classification exact (SPEC §12.1).
+
+   ```bash
+   cp "$KIT_ROOT/.claude/kit-manifest.sha256" \
+      "$PROJECT_ROOT/.claude/kit-manifest.sha256"
+   ```
+
+   Note — this is by design, not a bug: any file where the user chose "keep
+   project version" now hash-mismatches the freshly recorded manifest (the
+   manifest lists the *new* source hash; the project kept the *old* content).
+   On the next update that file correctly re-classifies **NEEDS REVIEW** rather
+   than being silently overwritten as SAFE. Record the manifest even if some
+   files were declined; a recorded baseline is always more accurate than none.
 
 ### Step 6 — Bump kit_version
 
@@ -225,6 +342,7 @@ Added:
 Skipped (already up to date):
   .claude/hooks/require-worktree.sh
 
+manifest: recorded (.claude/kit-manifest.sha256 → <new version>)
 kit_version: <old> → <new>
 Next: run kit-doctor to verify the updated install.
 ```

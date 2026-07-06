@@ -1,6 +1,11 @@
 ---
 name: adopt-existing-project
 description: Non-destructively bring the foundation kit into an existing repo — audit what's already there, report gaps ranked by leverage, merge (never overwrite) kit artifacts, and recommend a phased rollout the team can approve incrementally
+cost: cheap
+protects: "The kit's guardrails get added to a repo already in flight without overwriting anything you wrote, and every change is shown as a diff you approve before it's applied."
+requires: nothing
+gate_key: none
+ci_job: none
 ---
 
 # Adopt Existing Project
@@ -281,6 +286,17 @@ else
 fi
 ```
 
+#### Record the kit manifest
+After the approved hooks/skills/agents/settings land, copy the source kit's
+`.claude/kit-manifest.sha256` into the project's `.claude/`. It stamps the kit
+version adopted here so `kit-update` can later distinguish a locally-modified
+kit file from an untouched one instead of guessing (SPEC §12.1). Files the team
+chose to keep their own version of will hash-mismatch this baseline and
+correctly surface as NEEDS REVIEW on the next update — that is intended.
+```bash
+cp "$KIT/.claude/kit-manifest.sha256" .claude/kit-manifest.sha256
+```
+
 #### Docs and follow-ups — add, never clobber
 - `docs/DOCS_STANDARD.md`: copy if absent.
 - `docs/followups.md`: copy if absent; if present, append a `## Kit Adoption` section with the gap items as open follow-ups.
@@ -394,6 +410,7 @@ correct command. Installing the wrong formatter silently reformats code.
 ### Proposed Changes (dry-run — nothing written yet)
 - .claude/settings.json: <merge N hook entries — diff shown above>
 - .claude/hooks/: <copy: require-worktree.sh, secret-scan-diff.sh | skip: already present>
+- .claude/kit-manifest.sha256: <record — baseline for kit-update classification>
 - .github/workflows/ci.yml: <add jobs: typecheck, migration-heads — diff shown above>
 - CLAUDE.md: <absent — will write from template | present — proposed diff shown above>
 - .claude/kit.yaml: <absent — will write | present — candidate profile shown for review>

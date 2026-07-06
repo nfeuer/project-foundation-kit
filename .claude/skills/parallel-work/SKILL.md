@@ -1,6 +1,11 @@
 ---
 name: parallel-work
 description: Isolate concurrent Claude sessions in git worktrees so multiple agents never cross wires on main — create, work, PR, and auto-clean per-branch worktrees
+cost: cheap
+protects: "Concurrent agents working in the same repo can't overwrite or corrupt each other's changes, because each stream of work gets its own isolated branch and worktree."
+requires: nothing
+gate_key: worktree_isolation
+ci_job: none
 ---
 
 # Parallel Work — Worktree Isolation for Concurrent Agents

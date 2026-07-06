@@ -1,6 +1,11 @@
 ---
 name: branch-conflict-check
 description: Detect file-level overlap between the current branch and every other open PR so merge order gets decided deliberately, not discovered at conflict time
+cost: cheap
+protects: "You find out which other open pull requests touch the same files as yours before you merge, instead of hitting the conflict by surprise afterward."
+requires: "GitHub CLI (gh) authenticated"
+gate_key: branch_conflict
+ci_job: none
 ---
 
 # Branch Conflict Check

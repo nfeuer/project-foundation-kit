@@ -1,6 +1,11 @@
 ---
 name: prompt-regression
 description: When a PR touches a prompt template or model config, run the affected task_type's eval fixtures on both branches and report score deltas so prompt changes are evidence-based
+cost: subagents
+protects: "Prompt or model changes ship with a before/after eval score instead of a vibe."
+requires: "eval fixtures + a runner (SUBSTRATE.md §2); capabilities.llm.enabled"
+gate_key: prompt_regression
+ci_job: none
 ---
 
 # Prompt Regression

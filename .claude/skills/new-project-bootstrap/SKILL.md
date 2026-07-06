@@ -1,6 +1,11 @@
 ---
 name: new-project-bootstrap
 description: Lay a strong foundation in a new or existing repo — detect the stack, write the project profile (kit.yaml), install worktree isolation, autoformat, CI, CLAUDE.md, docs standard, follow-ups log, and the observability/eval/doc-sync scaffolding from the foundation kit
+cost: cheap
+protects: "A new project starts with the safety nets teams usually add too late — isolated work, logging that never fails silently, and a CI gate that stays green."
+requires: nothing
+gate_key: none
+ci_job: none
 ---
 
 # New Project Bootstrap
@@ -136,10 +141,16 @@ cp -r "$KIT/.claude/hooks"                  "$DEST/.claude/hooks"
 cp    "$KIT/.claude/settings.template.json" "$DEST/.claude/settings.json"
 cp -r "$KIT/.claude/skills/"*              "$DEST/.claude/skills/"
 cp -r "$KIT/.claude/agents/"*              "$DEST/.claude/agents/"
+cp    "$KIT/.claude/kit-manifest.sha256"   "$DEST/.claude/kit-manifest.sha256"
 chmod +x "$DEST/.claude/hooks/"*.sh
 mkdir -p "$DEST/.claude/worktrees" "$DEST/.claude/scratch"
 printf '%s\n' '.claude/worktrees/' '.claude/scratch/' >> "$DEST/.gitignore"
 ```
+
+Record the manifest by copying `.claude/kit-manifest.sha256` from the source kit
+(the `cp` above): it stamps the exact kit version this project adopted, which is
+what lets `kit-update` later tell a locally-modified kit file from an untouched
+one instead of guessing (SPEC §12.1).
 
 Adjust the formatter: hook wiring in `settings.json` stays as-is (all logic
 lives in the scripts); edit the per-extension case in
@@ -205,6 +216,7 @@ Then, for the language that applies, adapt the remaining patterns from `template
 - Hooks: worktree-isolation, secret-guard, secret-scan-diff, autoformat, merge-prune — installed
 - Skills: <list> — installed
 - Agents: <list> — installed
+- Manifest: .claude/kit-manifest.sha256 recorded (baseline for kit-update)
 - CLAUDE.md: authored (<n> lines)
 - Docs: DOCS_STANDARD + followups + taxonomy scaffolded
 - CI: ci.yml installed (<jobs>)

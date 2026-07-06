@@ -1,6 +1,11 @@
 ---
 name: coverage-ratchet
 description: Prevent test coverage from silently eroding — compare the current run against a stored baseline, fail if it dropped, and offer to lock in a higher baseline when it rose
+cost: cheap
+protects: "Test coverage can only hold steady or improve — a drop below the recorded baseline is caught and blocked instead of quietly eroding over time."
+requires: "capabilities.coverage.ratchet_enabled; a recorded coverage baseline"
+gate_key: coverage_ratchet
+ci_job: none
 ---
 
 # Coverage Ratchet

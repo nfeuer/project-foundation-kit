@@ -1,6 +1,11 @@
 ---
 name: logging-init
 description: Initialize or upgrade structured logging in a project — probe what already exists, ask 2–3 targeted questions, recommend a stack-mapped setup per docs/LOGGING_STANDARD.md, and wire it with approval, migrating rather than replacing what's there. Run during bootstrap/adoption, or whenever a repo is logging with print/console.log or an ad-hoc logger.
+cost: cheap
+protects: "Scattered print statements or an ad-hoc logger get upgraded to structured logging with correlation context and timing, without breaking what already works."
+requires: nothing
+gate_key: none
+ci_job: none
 ---
 
 # Logging Init

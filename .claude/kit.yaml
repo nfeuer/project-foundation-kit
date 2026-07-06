@@ -8,7 +8,7 @@
 # is false, the migration-check step is skipped and reported N/A. This is how one
 # kit serves a Python LLM service and a Go CLI without editing every skill.
 
-kit_version: "1.3.1"        # stamp; `kit-update` compares this against the source kit
+kit_version: "2.0.0-alpha"  # stamp; `kit-update` compares this against the source kit
 preset: "llm-app"           # library | service | llm-app | frontend | data-pipeline | custom
 
 # --- Gates: how strictly the quality gates enforce (scale-adaptive) ---

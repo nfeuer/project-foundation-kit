@@ -1,6 +1,11 @@
 ---
 name: kit-doctor
 description: Verify an installed kit is correctly wired — checks toolchain commands, capability toggles, hook executability, settings references, and gh auth. Reports PASS/WARN/FAIL per check. Never modifies anything.
+cost: cheap
+protects: "Broken wiring in the installed kit — a hook that can't fire, a missing tool, a bad config — gets caught before it costs you a failed run."
+requires: nothing
+gate_key: none
+ci_job: none
 ---
 
 # Kit Doctor
@@ -334,6 +339,193 @@ done
 [ -d .claude/scratch ] || echo "OK - no scratch dir"
 ```
 
+### 12. Skill metadata present and valid (SPEC.md §3)
+
+Every `.claude/skills/*/SKILL.md` frontmatter (the block between the first two
+`---` lines) must carry the full §3 field set — `name`, `description`, `cost`,
+`protects`, `requires`, `gate_key`, `ci_job` — each single-line and non-empty.
+`cost` must be one of `free`, `cheap`, `subagents`; `gate_key` must be a key in
+the §4.2 set or the literal `none`. This is the metadata the init menu, the
+README catalog, and checks 13–14 all read, so a malformed field silently breaks
+generation downstream.
+
+**Severity is version-gated (SPEC §12.1).** Read `kit_version` from
+`.claude/kit.yaml`. While it is below the first v2 version — it starts with `0.`
+or `1.` — the project predates the v2 metadata rollout, so any metadata problem
+is **WARN**. At `2.x` or later it is **FAIL**. The threshold is hardcoded here.
+
+```bash
+GATE_SET="secrets_scan credential_files worktree_isolation lint_types_tests \
+integration_tests migration_check coverage_ratchet perf_budget security_review \
+test_gap docs_sync spec_drift prompt_regression branch_conflict \
+observability_check flaky_triage sync_health ui_build build_artifact capture"
+
+kit_version=$(sed -n 's/^kit_version:[[:space:]]*"\{0,1\}\([0-9][^" ]*\).*/\1/p' \
+  .claude/kit.yaml | head -1)
+case "$kit_version" in
+  0.*|1.*) sev=WARN ;;   # pre-v2: metadata not rolled out yet
+  *)       sev=FAIL ;;   # v2+: metadata is contractual
+esac
+
+problems=0
+for f in .claude/skills/*/SKILL.md; do
+  fm=$(awk 'NR==1 && /^---/{inside=1; next} /^---/{if(inside) exit} inside' "$f")
+  for key in name description cost protects requires gate_key ci_job; do
+    val=$(printf '%s\n' "$fm" | sed -n "s/^$key:[[:space:]]*//p" | head -1)
+    [ -z "$val" ] && { echo "$sev $f: missing or empty field '$key'"; problems=$((problems+1)); }
+  done
+  cost=$(printf '%s\n' "$fm" | sed -n 's/^cost:[[:space:]]*//p' | head -1 | tr -d '"')
+  case "$cost" in
+    free|cheap|subagents|"") ;;
+    *) echo "$sev $f: cost '$cost' not in {free,cheap,subagents}"; problems=$((problems+1)) ;;
+  esac
+  gk=$(printf '%s\n' "$fm" | sed -n 's/^gate_key:[[:space:]]*//p' | head -1 | tr -d '"')
+  if [ -n "$gk" ] && [ "$gk" != none ]; then
+    ok=0; for k in $GATE_SET; do [ "$k" = "$gk" ] && ok=1; done
+    [ "$ok" -eq 0 ] && { echo "$sev $f: gate_key '$gk' not in the §4.2 set ∪ {none}"; problems=$((problems+1)); }
+  fi
+done
+[ "$problems" -eq 0 ] && echo "OK - all skill metadata present and valid"
+```
+
+Emit the check at **WARN** or **FAIL** per the version gate above; **PASS** when
+`problems` is zero.
+
+### 13. ci_job consistency (SPEC.md §3, §2.3)
+
+Two invariants tie skill metadata to CI. First, every `ci_job` value a skill
+declares must name a real job. Collect each `ci_job` ≠ `none` (a value may be a
+double-quoted comma-separated list like `"lint, typecheck, test"` — split on
+commas and trim), and confirm each named job exists as a top-level `jobs:` child
+in the installed CI workflows (`.github/workflows/*.yml`). When run inside the
+source kit repo itself — detectable by the presence of `templates/ci.template.yml`
+— also search that template, since it is the workflow projects actually copy.
+A missing job is **FAIL**; no CI workflow present at all is **WARN**.
+
+```bash
+workflows=$(ls .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null)
+template=""
+[ -f templates/ci.template.yml ] && template="templates/ci.template.yml"  # source-kit clause
+
+if [ -z "$workflows" ] && [ -z "$template" ]; then
+  echo "WARN no CI workflow files found — ci_job consistency cannot be verified"
+else
+  job_src=$(cat $workflows $template 2>/dev/null)
+  missing=0
+  for f in .claude/skills/*/SKILL.md; do
+    cj=$(sed -n 's/^ci_job:[[:space:]]*//p' "$f" | head -1 | tr -d '"')
+    [ -z "$cj" ] || [ "$cj" = none ] && continue
+    IFS=',' read -ra jobs <<< "$cj"
+    for j in "${jobs[@]}"; do
+      j=$(printf '%s' "$j" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+      [ -z "$j" ] && continue
+      if ! printf '%s\n' "$job_src" | grep -qE "^  ${j}:"; then
+        echo "FAIL $(basename "$(dirname "$f")"): ci_job '$j' not a job key in installed CI workflows or template"
+        missing=$((missing+1))
+      fi
+    done
+  done
+  [ "$missing" -eq 0 ] && echo "OK - every ci_job value maps to a CI job key"
+fi
+```
+
+Second, per §2.3/§4.4: any gate whose skill has `ci_job != none` is CI-backed
+and must therefore be `enforce` in `gates.modes.<gate_key>` — **but only if a
+`modes:` block exists**. Pre-§4 installs have no mode map yet; there is nothing
+to check, so report `N/A (no mode map — strictness defaults apply per
+docs/PROFILE.md)`.
+
+```bash
+if grep -qE '^  modes:' .claude/kit.yaml; then
+  for f in .claude/skills/*/SKILL.md; do
+    cj=$(sed -n 's/^ci_job:[[:space:]]*//p' "$f" | head -1 | tr -d '"')
+    [ -z "$cj" ] || [ "$cj" = none ] && continue
+    gk=$(sed -n 's/^gate_key:[[:space:]]*//p' "$f" | head -1 | tr -d '"')
+    mode=$(sed -n "s/^    ${gk}:[[:space:]]*//p" .claude/kit.yaml | head -1)
+    [ "$mode" != enforce ] && \
+      echo "FAIL gate '$gk' (ci_job=$cj) is '$mode' in gates.modes — must be enforce (SPEC §2.3)"
+  done
+else
+  echo "N/A (no mode map — strictness defaults apply per docs/PROFILE.md)"
+fi
+```
+
+Missing job → **FAIL**; no workflow → **WARN**; a CI-backed gate not `enforce`
+→ **FAIL**; no `modes:` block → the mode half is **N/A** (the ci_job-existence
+half still runs).
+
+### 14. Gate-key coverage (SPEC.md §4.2)
+
+The §4.2 key set must be owned, exactly once, by exactly the surfaces that
+implement it. Take the union of (a) every skill `gate_key` ≠ `none` and (b) the
+static list of keys owned by non-skill surfaces — hooks own `secrets_scan`,
+`credential_files`, `worktree_isolation`; agents own `security_review`,
+`test_gap`, `spec_drift`; pre-pr steps own `integration_tests`, `ui_build`,
+`build_artifact`. That union must equal the full §4.2 set exactly.
+
+- A §4.2 key owned by nothing → **FAIL** ("gate key has no owner").
+- A `gate_key` claimed by more than one skill → **FAIL**, EXCEPT `capture`
+  (legitimately shared by followup-tracking + compound-learnings, §6.3) and
+  `worktree_isolation` (owned by both the hook and the parallel-work skill by
+  design).
+- A key owned but absent from the §4.2 set → **FAIL** (a stray/renamed key).
+
+```bash
+NONSKILL="secrets_scan credential_files worktree_isolation security_review \
+test_gap spec_drift integration_tests ui_build build_artifact"
+
+skill_keys=$(for f in .claude/skills/*/SKILL.md; do
+  gk=$(sed -n 's/^gate_key:[[:space:]]*//p' "$f" | head -1 | tr -d '"')
+  [ -n "$gk" ] && [ "$gk" != none ] && echo "$gk"
+done)
+
+# Duplicate ownership across skills (capture + worktree_isolation exempt)
+printf '%s\n' "$skill_keys" | sort | uniq -c | while read -r c k; do
+  [ -z "$k" ] && continue
+  if [ "$c" -gt 1 ]; then
+    case "$k" in
+      capture|worktree_isolation) ;;
+      *) echo "FAIL gate_key '$k' claimed by $c skills (only capture and worktree_isolation may be shared)" ;;
+    esac
+  fi
+done
+
+union=$(printf '%s\n%s\n' "$skill_keys" "$(printf '%s\n' $NONSKILL)" | sed '/^$/d' | sort -u)
+for k in $GATE_SET; do
+  printf '%s\n' "$union" | grep -qx "$k" || echo "FAIL gate key '$k' has no owner"
+done
+printf '%s\n' "$union" | while read -r k; do
+  printf '%s\n' $GATE_SET | grep -qx "$k" || echo "FAIL gate key '$k' owned but not in the §4.2 set"
+done
+```
+
+(`$GATE_SET` is the list defined in check 12; if you run this check standalone,
+redefine it.) **PASS** when the union equals the §4.2 set and no illegitimate
+duplicate owner appears; any line above is a **FAIL**.
+
+### 15. Kit manifest recorded (SPEC.md §12.1)
+
+`.claude/kit-manifest.sha256` is the per-version file-hash manifest kit-update
+reads to classify changes as SAFE vs NEEDS-REVIEW (PT10). It must exist and
+every line must be `sha256sum` format — 64 hex chars, two spaces, a path.
+
+```bash
+manifest=.claude/kit-manifest.sha256
+if [ ! -f "$manifest" ]; then
+  echo "WARN no kit-manifest.sha256 — kit-update classification degrades to a git heuristic until a manifest is recorded — see SPEC.md §12.1"
+else
+  bad=$(grep -vnE '^[0-9a-f]{64}  .' "$manifest")
+  if [ -n "$bad" ]; then
+    echo "FAIL malformed manifest line(s):"; printf '%s\n' "$bad"
+  else
+    echo "OK - manifest present, all $(wc -l < "$manifest") line(s) well-formed"
+  fi
+fi
+```
+
+Missing manifest → **WARN** (kit-update still works, just falls back to a git
+heuristic). Any malformed line → **FAIL**.
+
 ## Output
 
 Emit exactly this fenced block with real results. Fill in the righthand column;
@@ -355,6 +547,10 @@ never leave a check blank.
 | gh auth | PASS/WARN/FAIL/N/A | — |
 | settings.json valid JSON | PASS/WARN/FAIL | — |
 | No stale progress ledgers | PASS/WARN | — |
+| Skill metadata (§3) | PASS/WARN/FAIL | — |
+| ci_job consistency | PASS/WARN/FAIL/N/A | — |
+| Gate-key coverage (§4.2) | PASS/FAIL | — |
+| Kit manifest recorded | PASS/WARN/FAIL | — |
 
 Overall: PASS / WARN (N warnings, 0 failures) / FAIL (N failures)
 ```

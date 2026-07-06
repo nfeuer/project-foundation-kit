@@ -1,6 +1,11 @@
 ---
 name: followup-tracking
 description: Capture deferred decisions, accepted drift, and cross-cutting TODOs in a durable follow-ups log instead of letting them rot in code comments — with a stable-ID entry format and a close/archive lifecycle
+cost: free
+protects: "Decisions you deferred and gaps you accepted get written down in one durable place instead of disappearing in a merged pull request."
+requires: "capabilities.docs.enabled"
+gate_key: capture
+ci_job: none
 ---
 
 # Follow-up Tracking

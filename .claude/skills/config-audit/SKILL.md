@@ -1,6 +1,11 @@
 ---
 name: config-audit
 description: Security audit of the agent-facing config surface — settings.json permissions, hook scripts, CLAUDE.md, skills, and MCP configs — for injection-shaped instructions, over-broad permissions, and leaked secrets. Read-only sibling of kit-doctor; run before committing changes to .claude/ or CLAUDE.md.
+cost: free
+protects: "The files that steer the agent — settings, hooks, CLAUDE.md, skills, MCP configs — get checked for leaked secrets and hidden instructions before you commit them."
+requires: nothing
+gate_key: none
+ci_job: none
 ---
 
 # Config Audit

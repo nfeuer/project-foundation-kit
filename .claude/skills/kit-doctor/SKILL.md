@@ -526,6 +526,52 @@ fi
 Missing manifest → **WARN** (kit-update still works, just falls back to a git
 heuristic). Any malformed line → **FAIL**.
 
+### 16. Model routing values are current (`models.*`)
+
+The profile's model roles are only useful if they name models that still
+resolve. Every non-empty value among `models.code`, `models.code_light`,
+`models.plan`, and `models.mechanical` must be one of the current IDs:
+`claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5`, `claude-fable-5`.
+Empty-string values are skipped (they mean "no preference"). Each
+`models.effort.*` value must be one of `low`, `medium`, `high`, `xhigh`, `max`.
+
+```bash
+# kit.yaml → models.*
+python3 -c "
+import yaml, re, sys
+with open('.claude/kit.yaml') as f:
+    d = yaml.safe_load(f) or {}
+m = d.get('models')
+if not m:
+    print('N/A (no models block - older profile)'); sys.exit(0)
+current = {'claude-opus-5','claude-sonnet-5','claude-haiku-4-5','claude-fable-5'}
+efforts = {'low','medium','high','xhigh','max'}
+problems = 0
+for role in ('code','code_light','plan','mechanical'):
+    val = (m.get(role) or '').strip()
+    if not val or val in current:
+        continue
+    if val.startswith('claude-3') or re.search(r'-20[0-9]{6}\$', val):
+        print('FAIL models.%s: retired or date-suffixed model ID: %s' % (role, val))
+    else:
+        print('WARN models.%s: unrecognized model ID: %s' % (role, val))
+    problems += 1
+for role, eff in (m.get('effort') or {}).items():
+    if eff and eff not in efforts:
+        print('WARN models.effort.%s: %s not in low|medium|high|xhigh|max' % (role, eff))
+        problems += 1
+if problems == 0:
+    print('OK - every models.* value is a current model ID')
+"
+```
+
+A retired `claude-3-*` ID or a date-suffixed one (`…-20260514`) is **FAIL** — it
+pins the kit to a model that will stop resolving. Any other unrecognized value
+is **WARN** (it may be a valid alias this list doesn't know). An unrecognized
+`models.effort.*` value is **WARN**. A profile with no `models:` block is
+**PASS**, reported as `N/A (no models block — older profile)` in the Detail
+column: the routing defaults in `using-the-kit` → **Model routing** apply.
+
 ## Output
 
 Emit exactly this fenced block with real results. Fill in the righthand column;
@@ -551,6 +597,7 @@ never leave a check blank.
 | ci_job consistency | PASS/WARN/FAIL/N/A | — |
 | Gate-key coverage (§4.2) | PASS/FAIL | — |
 | Kit manifest recorded | PASS/WARN/FAIL | — |
+| Model routing values (models.*) | PASS/WARN/FAIL | — / N/A (no models block) |
 
 Overall: PASS / WARN (N warnings, 0 failures) / FAIL (N failures)
 ```

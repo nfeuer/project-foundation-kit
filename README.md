@@ -56,7 +56,7 @@ CLAUDE.template.md              Project-instructions template (the file loaded e
     adopt-existing-project/     Brownfield install: audit → gap report → non-destructive merge
     kit-doctor/                 Verify an install is correctly wired (never modifies)
     kit-update/                 Propagate source-kit improvements to an adopted project
-    using-the-kit/              The dispatcher: 1%-rule trigger index + red-flags table
+    using-the-kit/              The dispatcher: trigger index + red-flags table
     writing-kit-skills/         Author a kit-compatible skill (extend, don't fork)
     config-audit/               Security audit of settings/hooks/CLAUDE.md/MCP configs
     parallel-work/              Worktree isolation for concurrent Claude sessions
@@ -138,8 +138,8 @@ templates/ci.template.yml       Lint + types + tests gate that projects copy to 
    fixtures with pass-gates, run offline with mocked tools, gated in CI.
 8. **Solved problems compound.** Non-obvious fixes are written to
    `docs/solutions/` and re-read before planning and debugging, so each unit of
-   work makes the next one easier — and skills fire on the 1% rule (`using-the-kit`),
-   so none of this depends on remembering to ask.
+   work makes the next one easier — and skills fire off a trigger index
+   (`using-the-kit`), so none of this depends on remembering to ask.
 
 ## The workflow catalog
 
@@ -287,9 +287,9 @@ repo runs on. Use both.
    changes.
 
 Credit where due: several conventions here were borrowed deliberately after
-studying the neighbors. The 1%-rule skill dispatcher (`using-the-kit`) and the
-skill-authoring meta-skill (`writing-kit-skills`) adapt superpowers' best
-mechanics; the `compound-learnings` loop adapts compound-engineering's
+studying the neighbors. The trigger-index skill dispatcher (`using-the-kit`)
+and the skill-authoring meta-skill (`writing-kit-skills`) adapt superpowers'
+best mechanics; the `compound-learnings` loop adapts compound-engineering's
 solved-problems step; the config security audit (`config-audit`) was inspired
 by everything-claude-code's AgentShield. The kit's job is to bundle the
 repo-infrastructure layer well, not to pretend every good idea originated here.

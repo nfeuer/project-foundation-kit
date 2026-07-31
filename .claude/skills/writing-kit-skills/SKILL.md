@@ -96,8 +96,8 @@ The house style, in order:
 
 A new skill isn't done until it is discoverable and maintained:
 
-- [ ] Add a row to the **trigger index** in `using-the-kit/SKILL.md` — this is
-  what makes it fire under the 1% rule.
+- [ ] Add a row to the **trigger index** in `using-the-kit/SKILL.md` — the
+  dispatcher only fires skills whose index row matches; no row, no trigger.
 - [ ] Add it to the README: the `What's inside` tree **and** the workflow
   catalog under the right purpose group.
 - [ ] If `pre-pr` should invoke it, add a checklist step + an output line there.

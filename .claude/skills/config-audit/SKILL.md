@@ -81,7 +81,9 @@ grep -rnE 'base64|atob\(|do not (tell|mention|inform)|ignore (all |previous )?in
 ```
 
 The grep is a coarse net — read anything it surfaces in context before calling
-it a finding, and skim any skill added from outside the kit in full.
+it a finding. Report ambiguous hits as lower-confidence findings rather than
+omitting them outright; triage happens in the report, not before it, and skim
+any skill added from outside the kit in full.
 
 ### 4. MCP server configs
 

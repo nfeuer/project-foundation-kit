@@ -85,6 +85,11 @@ before merge; respect the project's retention policy for any fields that do
 land in persistent storage. See `docs/PII_LOGGING_CHECKLIST.md` for the full
 checklist.
 
+Report every gap this check finds, including low-confidence ones, with the
+file/line it occurs at — do not pre-filter by severity. Downstream review is
+where triage happens: what blocks the merge is decided there, not by omitting
+findings here.
+
 ## Output
 ```
 ## Observability Review

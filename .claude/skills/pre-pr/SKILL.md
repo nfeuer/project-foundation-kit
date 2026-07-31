@@ -58,15 +58,21 @@ uv run pytest tests/integration/ -m "not slow and not llm" -q
 
 ### 4. Test coverage of the change
 Dispatch the **test-gap-analyzer** agent to confirm new public functions and
-changed branches have covering tests. A new untested code path is a blocking gap;
+changed branches have covering tests. Have it report every gap it identifies,
+each with a confidence and severity rating — not only the gaps it judges
+important. The blocking-vs-follow-up split below does the triage; the agent
+should not pre-filter. A new untested code path is a blocking gap;
 happy-path-only coverage of a risky path is a follow-up.
 
 ### 5. Security review
 If the change touches auth, secrets, user input validation, or external calls
 (outbound HTTP, email, calendar, Discord), dispatch the **security-reviewer**
 agent over the diff. It audits for credential leaks, injection paths, auth bypass,
-and insecure token handling. Any finding blocks the PR until addressed or
-explicitly accepted with a documented reason. If none of those surfaces are
+and insecure token handling. Have it report every finding with a confidence
+and severity rating rather than filtering to only what it judges important —
+the accept/block decision happens in this step, not by the agent silently
+withholding lower-severity findings. Any finding blocks the PR until addressed
+or explicitly accepted with a documented reason. If none of those surfaces are
 involved, mark N/A — except at `production` strictness, where the review runs
 on every diff regardless of surface.
 

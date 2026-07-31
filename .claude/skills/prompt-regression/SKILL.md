@@ -81,7 +81,11 @@ silent tradeoff is not an accepted one.
   `prototype` strictness (`gates.strictness` in `kit.yaml`), the delta is
   reported as `ADVISORY` instead of blocking — but still reported; a prompt
   change without a score delta is never acceptable.
-- Model alias changes that touch a gated task_type follow the same rule.
+- Model alias changes that touch a gated task_type follow the same rule. An
+  alias change that resolves to a retired `claude-3-*` ID is flagged
+  regardless of score delta — current set: `claude-opus-5`, `claude-sonnet-5`,
+  `claude-haiku-4-5`, `claude-fable-5` (keep in sync with `kit-doctor` check
+  16, which validates `models.*` in `kit.yaml` against this same set).
 - If fixtures for the affected task_type don't exist yet, treat that as a P0
   gap: create tier-1 baseline fixtures before merging the prompt change.
   (Reference the eval-harness skill for fixture structure.)

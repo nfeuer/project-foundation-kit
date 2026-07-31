@@ -53,8 +53,9 @@ flakiness.
 Validate each output against its JSON schema (`schemas/<task_type>.json`) — a
 malformed output is an automatic fail. Then compare against `expected`. For
 fuzzy fields (free text), score with an LLM-judge rather than exact match: send
-the prompt + output to a judge model and take its `quality_score` (0.0–1.0),
-flagging anything below threshold.
+the prompt + output to a current model ID selected via the project's model
+aliases (e.g. `claude-sonnet-5`; never a retired `claude-3-*` ID) and take its
+`quality_score` (0.0–1.0), flagging anything below threshold.
 
 ### 3. Compute the tier result
 ```

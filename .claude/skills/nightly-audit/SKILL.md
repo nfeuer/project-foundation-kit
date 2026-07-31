@@ -107,6 +107,8 @@ Also report the **quarantined flaky-test** count and their age from
 digest is where it's kept visible. Flag any quarantined test older than a
 threshold or missing an owning follow-up. If `capabilities.replica.enabled` is
 true, include the latest **sync-health** result (lag + parity) in the digest too.
+If `capabilities.llm.enabled` is true, include the latest **cost-check**
+verdict (GREEN/WARN/PAUSE) in the digest too.
 
 ### 6. Check CI status on main
 ```bash

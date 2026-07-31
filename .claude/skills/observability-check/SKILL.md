@@ -18,7 +18,8 @@ what happened and why — without a redeploy to add logging. This applies to
 (jobs, consumers, pipelines, lifecycle, state machines, caches) is
 `docs/LOGGING_STANDARD.md`; hold the change to the rows that apply. For a deeper
 automated pass, dispatch the **observability-reviewer** agent; this skill is the
-inline checklist.
+inline checklist. It reports gaps; it does not wire in the missing logging,
+correlation IDs, or alerts itself — that fix stays with the author.
 
 ## What to check
 

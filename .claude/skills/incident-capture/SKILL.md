@@ -87,7 +87,9 @@ git log --oneline -10 -- "src/<pkg>/<component>/" "config/<component>*.yaml"
 ```
 
 If the component last changed within the same git session, it is the primary
-suspect. These hashes go into the "Related commits" section of the note.
+suspect. These hashes go into the "Related commits" section of the note. This
+skill documents the incident; it does not revert or patch the primary-suspect
+commit — that decision belongs to whoever responds.
 
 ### 5. Write the incident note from the template
 ```bash

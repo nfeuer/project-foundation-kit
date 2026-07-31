@@ -20,7 +20,9 @@ extractor. The pattern: version-controlled fixtures, tiered by difficulty, score
 against a pass-gate, run offline with mocked tools, and gated in CI.
 
 Use it when adding or changing any capability whose output is judged rather than
-asserted.
+asserted. This skill authors, scores, and reports against fixtures; it never
+edits the prompt, model config, or code under test — those changes are a
+separate, explicit step.
 
 ## Structure
 

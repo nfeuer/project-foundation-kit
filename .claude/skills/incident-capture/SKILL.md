@@ -61,7 +61,10 @@ for `-resolved.md`) to re-arm the trigger.
 
 ### 3. Gather correlated log context
 Pull the log lines for the window — include `correlation_id`, the error, and
-the fallback taken. These become the "Correlated logs" section of the note:
+the fallback taken. These become the "Correlated logs" section of the note.
+Keep this section factual — log facts and timeline, not speculative
+root-cause filler. The commands below already cap the excerpt at 20 lines
+from the 15-minute window:
 
 ```bash
 logcli query \
@@ -87,7 +90,9 @@ git log --oneline -10 -- "src/<pkg>/<component>/" "config/<component>*.yaml"
 ```
 
 If the component last changed within the same git session, it is the primary
-suspect. These hashes go into the "Related commits" section of the note.
+suspect. These hashes go into the "Related commits" section of the note. This
+skill documents the incident; it does not revert or patch the primary-suspect
+commit — that decision belongs to whoever responds.
 
 ### 5. Write the incident note from the template
 ```bash

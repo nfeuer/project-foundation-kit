@@ -18,7 +18,8 @@ what happened and why — without a redeploy to add logging. This applies to
 (jobs, consumers, pipelines, lifecycle, state machines, caches) is
 `docs/LOGGING_STANDARD.md`; hold the change to the rows that apply. For a deeper
 automated pass, dispatch the **observability-reviewer** agent; this skill is the
-inline checklist.
+inline checklist. It reports gaps; it does not wire in the missing logging,
+correlation IDs, or alerts itself — that fix stays with the author.
 
 ## What to check
 
@@ -83,6 +84,11 @@ before it reaches the logging layer. Temporary debug fields must be removed
 before merge; respect the project's retention policy for any fields that do
 land in persistent storage. See `docs/PII_LOGGING_CHECKLIST.md` for the full
 checklist.
+
+Report every gap this check finds, including low-confidence ones, with the
+file/line it occurs at — do not pre-filter by severity. Downstream review is
+where triage happens: what blocks the merge is decided there, not by omitting
+findings here.
 
 ## Output
 ```

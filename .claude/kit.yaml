@@ -8,7 +8,7 @@
 # is false, the migration-check step is skipped and reported N/A. This is how one
 # kit serves a Python LLM service and a Go CLI without editing every skill.
 
-kit_version: "2.0.0-alpha"  # stamp; `kit-update` compares this against the source kit
+kit_version: "2.1.0-alpha"  # stamp; `kit-update` compares this against the source kit
 preset: "llm-app"           # library | service | llm-app | frontend | data-pipeline | custom
 
 # --- Gates: how strictly the quality gates enforce (scale-adaptive) ---
@@ -24,6 +24,20 @@ gates:
 # --- Git / concurrency ---
 trunk_branch: "main"        # branch the worktree-isolation hook protects
 worktree_dir: ".claude/worktrees"
+
+# --- Model routing: which model executes which shape of step ---
+# Skills name a role (code | plan | mechanical), never a bare model ID — same
+# convention as `toolchain.test`. Empty string ("") = no preference; run the
+# step on whatever model is already executing.
+models:
+  code:       "claude-opus-5"     # edits, fixes, migrations, generated artifacts
+  code_light: "claude-sonnet-5"   # same work, smaller diffs / cheaper runs
+  plan:       "claude-fable-5"    # planning, validation, review: adr, session-handoff, review agents
+  mechanical: "claude-haiku-4-5"  # deterministic checks: greps, file existence, manifest diffs
+  effort:
+    code:       "high"            # low | medium | high | xhigh | max
+    plan:       "high"
+    mechanical: "low"
 
 # --- Toolchain: the commands every gate runs. Empty string ("") = skip the step.
 toolchain:

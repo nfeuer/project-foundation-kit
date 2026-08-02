@@ -130,8 +130,8 @@ If the file does not exist yet, create it from `docs/flaky-tests.template.md`.
 - **Never quarantine without recording.** If `quarantine_allowed` is true but the
   registry update fails for any reason, revert the marker change. An unrecorded
   quarantine is worse than no quarantine — it is a silently deleted test.
-- **Do not quarantine a real failure.** A test that never passes (pass rate = 0) is
-  broken, not flaky. Fix it or delete it; do not quarantine it.
+- **Do not quarantine a real failure** — pass rate 0 means broken, not flaky
+  (see step 3).
 - **Borderline tests are recorded, not quarantined.** If a borderline test (pass
   rate ≥ `flaky_threshold`) surfaces again on a subsequent run, the accumulated
   evidence justifies reopening triage and potentially quarantining then.

@@ -13,7 +13,10 @@ ci_job: none
 Installs the foundation kit into a repo so it starts with the guardrails that
 otherwise get bolted on late (or never): concurrent-agent isolation, no-silent-
 failure logging, a spec/doc/drift sync loop, follow-up tracking, an eval harness,
-and a CI gate that agents keep green. Run this once per new project.
+and a CI gate that agents keep green. Run this once per new project. This skill
+stays inside the steps listed below — it does not refactor existing code, add
+unrelated dependencies, or restructure directories beyond what a step calls
+for.
 
 **Progress ledger.** This is a long multi-step install — keep a ledger at
 `.claude/scratch/new-project-bootstrap-ledger.md` (see `docs/PROGRESS_LEDGER.md`):

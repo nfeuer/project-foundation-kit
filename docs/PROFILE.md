@@ -39,6 +39,12 @@ convention, not a templating engine:
    and wired (library, destination, dev rendering) — `initialized: false` is a
    standing kit-doctor warning to run it.
 
+4. **Model roles.** `models.code`, `models.code_light`, `models.plan`, and
+   `models.mechanical` name which model executes which shape of step, with
+   per-role effort defaults under `models.effort`. Skills and the dispatcher
+   cite the role key, never a literal model ID, so retargeting the kit is one
+   edit here. Empty value = "no preference — run on the current model."
+
 ## Gate strictness — ceremony scales with maturity
 
 `gates.strictness` sets how hard the quality gates push, so a weekend prototype

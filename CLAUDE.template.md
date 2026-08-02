@@ -71,10 +71,10 @@ when a rule seems arbitrary, this is what justifies it.>
 
 ## Before You Start a Task
 1. Read this file.
-2. **Check the `using-the-kit` skill's trigger index.** The 1% rule applies:
-   if there is even a 1% chance a kit skill or gate applies to what you are
-   about to do, invoke it — a skill whose capability is off reports N/A in
-   seconds. Check before acting, including before clarifying questions.
+2. **Scan the `using-the-kit` skill's trigger index.** If a row's condition
+   matches what you are about to do, invoke that skill or gate — a skill whose
+   capability is off reports N/A in seconds. Check before acting, including
+   before clarifying questions.
 3. Grep `docs/solutions/` for the area you're touching (and any error text you
    are chasing) — someone may have already solved this. See `compound-learnings`.
 4. For any design decision, consult `<spec.md>` and cite the relevant `§` in

@@ -41,6 +41,12 @@ means the skill never fires. State the trigger condition explicitly:
 Write it as *situation → action*: someone (or the dispatcher in
 `using-the-kit`) reading only this line must know exactly when to invoke it.
 
+Optionally state the skill's **model fit** in the intro paragraph: code-writing/
+execution skills suit `models.code` / `models.code_light`; planning, validation,
+or review skills suit `models.plan`. Write the role key, not a bare model ID —
+the routing table lives in `using-the-kit` and the keys in `.claude/kit.yaml`
+(see `docs/PROFILE.md`). One line of prose, not a frontmatter field.
+
 ## 2. Read the profile — never hardcode a toolchain
 
 Any command that varies by project reads from `.claude/kit.yaml`. Tag the step
@@ -83,8 +89,12 @@ The house style, in order:
    terms of cost (money, red CI, silent breakage). Not a feature list.
 2. **`## Workflow`** (or `## Checks`) — numbered steps. Each step is
    verifiable: a command with expected output, or a judgment with explicit
-   criteria. For read-only skills, say so up front: "It reads and checks only
-   — it never modifies files" (see `kit-doctor` for the canonical example).
+   criteria. **State the boundary in the intro — one sentence.** Read-only
+   skills say so plainly ("It reads and checks only — it never modifies
+   files"; `kit-doctor` is canonical). Skills that write something narrow name
+   the write and the non-write. The boundary must be exhaustive-accurate — an
+   over-broad "read-only" claim on a skill that also writes a baseline file, a
+   sentinel, or a chat alert is worse than no boundary at all.
 3. **Decision tables** for outcomes — `| Outcome | Action |` beats prose
    (see `coverage-ratchet` step 3).
 4. **`## Output`** — a fenced report template the agent must fill with real
@@ -96,8 +106,8 @@ The house style, in order:
 
 A new skill isn't done until it is discoverable and maintained:
 
-- [ ] Add a row to the **trigger index** in `using-the-kit/SKILL.md` — this is
-  what makes it fire under the 1% rule.
+- [ ] Add a row to the **trigger index** in `using-the-kit/SKILL.md` — the
+  dispatcher only fires skills whose index row matches; no row, no trigger.
 - [ ] Add it to the README: the `What's inside` tree **and** the workflow
   catalog under the right purpose group.
 - [ ] If `pre-pr` should invoke it, add a checklist step + an output line there.
@@ -119,8 +129,21 @@ A new skill isn't done until it is discoverable and maintained:
   one-liners over pseudo-code for anything that parses YAML/JSON.
 - State blocking vs. advisory explicitly for every check, and how
   `gates.strictness` (see `docs/PROFILE.md`) changes that, if it does.
+- Trigger on a stated condition, not on doubt. Write "Run this when
+  `<condition>`"; never "if there is even a chance…" or `You MUST` unless the
+  rule is genuinely absolute (secrets, destructive ops, a blocking gate).
+- Skills that request findings ask for **every** finding with confidence and
+  severity, and triage downstream — never instruct the finder to pre-filter.
+- Skills that produce a written document carry one length-calibration sentence.
+- Do not tell the agent to double-check, re-verify, or spawn a subagent to
+  review its own output — that is built in and only burns tokens. Command-backed
+  verification steps are workflow; keep those. Fan-out guidance names a cap and
+  a criterion: only genuinely independent, sizeable tracks; never to verify
+  your own work.
 - Keep it as short as the content allows. A skill is loaded into context when
-  invoked — every line costs tokens.
+  invoked — every line costs tokens, and Sonnet 5's tokenizer uses ~30% more
+  tokens for the same text than Sonnet 4.6, so trimming redundant prose pays
+  off more than it used to.
 
 ## Output
 
@@ -130,6 +153,8 @@ A new skill isn't done until it is discoverable and maintained:
 - SKILL.md: written (<n> lines), description states trigger: yes
 - Profile keys read: <list / none>
 - Capability gate: <capabilities.X.enabled / none — always applies>
+- Boundary stated: <read-only | writes: <what> | none stated>
+- Model fit: <code | planning/validation | mechanical | none stated>
 - Registered: using-the-kit index ▢  README tree ▢  README catalog ▢
   pre-pr step ▢/N/A  kit-doctor check ▢/N/A  presets+PROFILE.md ▢/N/A
 - kit_version bumped: <old> → <new>

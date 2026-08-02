@@ -16,7 +16,10 @@ in hot paths and external/model calls during review, before they affect users.
 It enforces two thresholds per operation: an **absolute budget** (the p95 must
 not exceed N ms) and a **baseline tolerance** (the p95 must not regress beyond a
 stored per-path baseline by more than `tolerance_pct`). When a path improves,
-it offers to ratchet the baseline down — one-way, like the coverage ratchet.
+it offers to ratchet the baseline down — one-way, like the coverage ratchet. It
+measures and reports; it does not tune the hot path itself — fixing a
+regression is the author's task, just as the coverage ratchet does not write
+tests.
 
 **Profile-driven.** Commands and thresholds below read from `.claude/kit.yaml`.
 Steps tagged `# kit.yaml → <key>` use the value at that key if set; an empty

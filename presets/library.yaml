@@ -8,6 +8,20 @@ preset: "library"
 gates:
   strictness: "standard"    # prototype | standard | production — see docs/PROFILE.md
 
+# --- Model routing: which model executes which shape of step ---
+# Skills name a role (code | plan | mechanical), never a bare model ID — same
+# convention as `toolchain.test`. Empty string ("") = no preference; run the
+# step on whatever model is already executing.
+models:
+  code:       "claude-sonnet-5"   # edits, fixes, migrations, generated artifacts
+  code_light: "claude-sonnet-5"   # same work, smaller diffs / cheaper runs
+  plan:       "claude-fable-5"    # planning, validation, review: adr, session-handoff, review agents
+  mechanical: "claude-haiku-4-5"  # deterministic checks: greps, file existence, manifest diffs
+  effort:
+    code:       "high"            # low | medium | high | xhigh | max
+    plan:       "high"
+    mechanical: "low"
+
 toolchain:
   lint:             "uv run ruff check src/ tests/"
   format:           "ruff format"

@@ -33,8 +33,8 @@ Run at the end of a unit of work whenever any of these happened:
 
 What does **not** belong: routine feature work, anything the project docs or
 spec already cover (update those instead — `doc-sync`), and anything session-
-specific with no future value. When in doubt, write it — a short entry that is
-never needed costs less than a re-derived investigation.
+specific with no future value. If it meets one of the criteria above, write
+it — the entry costs 90 seconds, and a re-derived investigation costs far more.
 
 ## Entry format
 

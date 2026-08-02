@@ -56,6 +56,9 @@ every `<placeholder>`:
 - **Related** — the spec section it implements or diverges from (`spec_v3.md
   §N`), any follow-up IDs (`docs/followups.md`), and the PR that introduced it.
 
+Keep each section tight — a few sentences per section is usually enough; the
+value is in the decision and the rejected alternatives, not exhaustive prose.
+
 Set **Status** to `proposed` until the PR is merged, then `accepted`.
 
 ### 4. Cross-link

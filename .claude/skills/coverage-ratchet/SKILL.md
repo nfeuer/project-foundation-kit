@@ -14,7 +14,9 @@ Coverage numbers that can only go up (or stay flat) are a one-way gate. This
 skill reads the project's baseline from `.claude/kit.yaml` and the stored
 baseline file, runs the test suite with coverage, and enforces the floor. It
 does not reason about *which* paths are covered — use the **test-gap-analyzer**
-agent for that. This enforces the *number*.
+agent for that. This enforces the *number*. It does not edit source or tests;
+its only write is the sanctioned baseline-file update in step 3, made only
+with author confirmation.
 
 ## Workflow
 

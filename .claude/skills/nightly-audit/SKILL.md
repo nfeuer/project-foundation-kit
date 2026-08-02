@@ -12,12 +12,15 @@ ci_job: none
 
 **Profile-driven.** Alert destination is `alerts.channel` / `alerts.target` in `.claude/kit.yaml`. Doc paths use `capabilities.docs.dir`. Spec-drift checks read `capabilities.spec.file` — if that key is empty, skip the spec-drift section entirely.
 
-Drift accumulates in the gaps between work sessions: docs fall behind code, spec
-sections go stale, follow-ups pile up, dependencies age into CVEs. This skill
-wraps the project's existing health machinery (doc-sync, spec-drift, dependency
-audit, follow-up count, CI status) into a single scheduled run that posts a
-compact digest to chat each morning. A section that is all-green is omitted
-entirely — the digest surfaces only actionable deltas, not a wall of checkmarks.
+Drift accumulates in the gaps between work sessions: docs fall behind code,
+spec sections go stale, follow-ups pile up, dependencies age into CVEs. This
+skill wraps the project's existing health machinery (doc-sync, spec-drift,
+dependency audit, follow-up count, CI status) into a single scheduled run
+that posts a compact digest to chat each morning. A section that is all-green
+is omitted entirely — the digest surfaces only actionable deltas, not a
+wall of checkmarks. It only aggregates and posts what the underlying checks
+already found — it does not fix stale docs, drifting spec sections, or
+vulnerable dependencies itself.
 Use the `/schedule` skill to register the cron; `/loop` is an alternative for
 polling during a dev session.
 
@@ -104,6 +107,8 @@ Also report the **quarantined flaky-test** count and their age from
 digest is where it's kept visible. Flag any quarantined test older than a
 threshold or missing an owning follow-up. If `capabilities.replica.enabled` is
 true, include the latest **sync-health** result (lag + parity) in the digest too.
+If `capabilities.llm.enabled` is true, include the latest **cost-check**
+verdict (GREEN/WARN/PAUSE) in the digest too.
 
 ### 6. Check CI status on main
 ```bash

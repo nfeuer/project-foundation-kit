@@ -68,6 +68,10 @@ capabilities:
 **Applies when `capabilities.replica.enabled` is true.** If false, report `N/A` for
 every section and exit 0 — do not query any database.
 
+This skill never writes to primary or replica — it only produces reporting
+artifacts such as log events, the alert post, a local sentinel file, spot-check
+output, and the incident note it opens.
+
 ### 2. Register or invoke the scheduled run
 
 Wire the agent to a cron that complements the nightly-audit schedule via `/schedule`:

@@ -1,6 +1,6 @@
 ---
 name: using-the-kit
-description: The kit's dispatcher — consult this before starting any task and before responding. If there is even a 1% chance a kit skill or gate applies to what you are about to do, you MUST invoke it. Contains the trigger index and the red-flags table of rationalizations to reject.
+description: The kit's dispatcher — consult this before starting any task and before responding. Scan its trigger index and invoke any skill whose row matches what you are about to do. Contains the trigger index and the red-flags table of rationalizations to reject.
 cost: free
 protects: "The right safeguard actually runs at the moment it matters, instead of being silently skipped because nobody remembered it existed."
 requires: nothing
@@ -15,16 +15,14 @@ kit exists because skipping it once cost a real project real money, a red CI
 queue, or a silent production failure. This skill is the dispatcher that makes
 sure the right one runs at the right moment.
 
-## The 1% rule
+## When to check
 
-**If you think there is even a 1% chance a kit skill applies to what you are
-doing, you MUST invoke it.** This is not negotiable, and it is cheap: a skill
-whose capability toggle is off in `.claude/kit.yaml` reports N/A in seconds.
-Reporting N/A is fine. Skipping the check silently is not.
-
-Check for applicable skills **before** acting — before writing code, before
-running commands, and before answering, including before asking clarifying
-questions. The trigger index below is the checklist.
+Scan the trigger index below before acting — before writing code, before
+running commands, and before responding, including before asking clarifying
+questions. **If a row's condition matches what you are about to do, invoke
+that skill.** The check is cheap: a skill whose capability toggle is off in
+`.claude/kit.yaml` reports N/A in seconds. Reporting N/A is fine. Skipping the
+check silently is not.
 
 ## Priority order
 
@@ -81,7 +79,26 @@ skill applies, not a reason to skip it.
 
 Capability-gated skills (`migration-check`, `prompt-regression`, `perf-budget`,
 `sync-health`, `cost-check`, …) read their toggle from `.claude/kit.yaml` and
-report N/A when disabled — invoking them when in doubt is always safe.
+report N/A when disabled — invoking a capability-gated skill costs only a quick
+N/A check when its toggle is off.
+
+## Model routing
+
+Route by the shape of the step, not by which skill you are in. The profile's
+`models.*` keys in `.claude/kit.yaml` hold the project's choices; the defaults
+below apply when the block is absent or a value is empty.
+
+| Step shape | Role key | Default | Effort |
+|---|---|---|---|
+| Writing or changing code — edits, fixes, migrations, generated artifacts | `models.code` | `claude-opus-5` (`models.code_light`, `claude-sonnet-5`, for small diffs) | high |
+| Planning and validation — `adr`, `session-handoff`, spec and design decisions, and the review agents (`security-reviewer`, `test-gap-analyzer`, `observability-reviewer`, `spec-drift-checker`) | `models.plan` | `claude-fable-5` | high; xhigh for a full-diff security pass |
+| Mechanical checks — file existence, greps, manifest diffs, `kit-doctor`'s wiring checks | `models.mechanical` | `claude-haiku-4-5`, or `claude-sonnet-5` at low effort | low |
+
+This applies whenever you choose which agent or model runs a step: a subagent
+spawn, a cron entry (`nightly-audit`, `pr-babysitter`), or a CI job. When you
+do not control it, run the step where you are and say nothing. In skill bodies
+write the role key, not a bare model ID; never a date-suffixed ID and never a
+retired `claude-3-*` ID.
 
 ## Output
 

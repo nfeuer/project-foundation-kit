@@ -60,9 +60,11 @@ Hook detection follows `settings.json` — a repo may keep hook scripts under
 `.claude/hooks/` is the canonical location.
 
 ```bash
-# Extract every hook command string from settings.json and resolve .sh paths
+# Extract every hook command string from settings.json once, then report
+# (1) .sh path resolution and (2) P4 portability: absolute paths not anchored
+# to $CLAUDE_PROJECT_DIR break on any other machine.
 python3 - <<'PY'
-import json, os, sys
+import json, os, re, sys
 
 try:
     data = json.load(open(".claude/settings.json"))
@@ -78,11 +80,9 @@ for hook_list in data.get("hooks", {}).values():
             if cmd:
                 cmds.append(cmd)
 
-if not cmds:
-    print("no hook commands found in settings.json")
-    sys.exit(0)
-
-print(f"{len(cmds)} hook command(s) found")
+# (1) Hook scripts — resolve every .sh token against the working tree
+print(f"{len(cmds)} hook command(s) found" if cmds
+      else "no hook commands found in settings.json")
 for cmd in cmds:
     for token in cmd.split():
         if token.endswith(".sh"):
@@ -93,48 +93,24 @@ for cmd in cmds:
             status = "executable" if executable else \
                      ("NOT EXECUTABLE" if exists else "MISSING")
             print(f"  {token} -> {status}")
-PY
-```
-Record which named hooks are wired (`require-worktree`, `secret-scan-diff`,
-`prune-merged-worktrees`, `post-merge-prune`, autoformat). Note any custom
-hooks the repo has added — those must be preserved.
 
-```bash
-# P4: Portability — flag absolute paths in hook commands.
-# Paths not anchored to $CLAUDE_PROJECT_DIR break on any other machine.
-python3 - <<'PY'
-import json, re, sys
-
-try:
-    data = json.load(open(".claude/settings.json"))
-except Exception:
-    sys.exit(0)
-
-cmds = []
-for hook_list in data.get("hooks", {}).values():
-    for entry in (hook_list if isinstance(hook_list, list) else []):
-        for h in (entry.get("hooks", []) if isinstance(entry, dict) else []):
-            cmd = h.get("command", "") if isinstance(h, dict) else ""
-            if cmd:
-                cmds.append(cmd)
-
-gaps = []
-for cmd in cmds:
-    for token in cmd.split():
-        if re.match(r'^[/~]', token) and '$CLAUDE_PROJECT_DIR' not in token:
-            gaps.append((token, cmd[:80]))
-
-if gaps:
-    for path, cmd_excerpt in gaps:
-        print(f"  PORTABILITY GAP: absolute path '{path}'")
-        print(f"    in command: {cmd_excerpt!r}")
-        print(f"    -> use $CLAUDE_PROJECT_DIR/... for cross-machine portability")
-else:
+# (2) Portability — absolute paths not anchored to $CLAUDE_PROJECT_DIR
+gaps = [(token, cmd[:80]) for cmd in cmds for token in cmd.split()
+        if re.match(r'^[/~]', token) and '$CLAUDE_PROJECT_DIR' not in token]
+for path, cmd_excerpt in gaps:
+    print(f"  PORTABILITY GAP: absolute path '{path}'")
+    print(f"    in command: {cmd_excerpt!r}")
+    print(f"    -> use $CLAUDE_PROJECT_DIR/... for cross-machine portability")
+if not gaps:
     print("no absolute paths in hook commands")
 PY
 ```
-Absolute paths in hook commands are a portability gap — record any found above
-in the gap report (Phase 2).
+From section (1), record which named hooks are wired (`require-worktree`,
+`secret-scan-diff`, `prune-merged-worktrees`, `post-merge-prune`, autoformat).
+Note any custom hooks the repo has added — those must be preserved.
+
+Section (2) is the portability check: absolute paths in hook commands are a
+portability gap — record any found there in the gap report (Phase 2).
 
 #### 1.3 Docs taxonomy
 ```bash

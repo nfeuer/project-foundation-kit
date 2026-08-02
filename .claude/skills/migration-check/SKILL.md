@@ -18,7 +18,9 @@ Run this **as part of pre-pr** whenever a PR touches `*/versions/*` (Alembic) or
 any equivalent migration directory. Its job is to stop a destructive or
 un-reversible migration from reaching the primary DB and, for projects that
 write-through to a replica, from causing a replica divergence that is painful to
-recover from. Catch these locally, not mid-deploy.
+recover from. Catch these locally, not mid-deploy. It reports findings and
+mitigations; it does not run `alembic merge heads`, edit `downgrade()` bodies,
+or apply schema fixes itself — those changes stay the author's to make.
 
 > Language-agnostic: the same three invariants apply to any migration tool
 > (Django, Flyway, Liquibase, Prisma Migrate, sqitch): (1) single active head,

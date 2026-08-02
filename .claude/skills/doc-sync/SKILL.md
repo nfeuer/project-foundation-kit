@@ -45,6 +45,9 @@ For each changed area, update the relevant hand-written pages under
 - `<docs.dir>/troubleshooting.md` / `glossary.md` — if you introduced a new failure
   mode or domain term.
 
+Keep updates proportional to the change — amend the relevant paragraph or
+bullet, not a rewritten page.
+
 **Never hand-edit generated pages** (`docs/reference/`, `docs/config/`,
 `docs/schemas/`) — those regenerate from docstrings/config on build. Instead, fix
 the docstring or config that generates them.

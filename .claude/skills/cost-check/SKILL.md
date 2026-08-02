@@ -14,11 +14,19 @@ ci_job: none
 
 **Profile-driven.** The spend table is `capabilities.llm.spend_table` from `.claude/kit.yaml` (default: `invocation_log`). Substitute that name in every query below if your project uses a different value.
 
+**Price sanity check (update as pricing changes).** `claude-opus-5` $5/$25 per
+MTok · `claude-sonnet-5` $3/$15 (intro $2/$10 through 2026-08-31) ·
+`claude-haiku-4-5` $1/$5 · `claude-fable-5` $10/$50. Use these only to
+sanity-check the `cost_usd` figures below — the spend table's `cost_usd`
+column stays authoritative.
+
 Run this any time you want to know where the project stands against its API
-budget before triggering expensive work, or after a run that felt heavy. It
-reads directly from the `invocation_log` table — the same source `BudgetGuard`
-uses at call time — so the numbers are authoritative. For automated enforcement
-(raising before a call goes out), see `templates/cost_guard.py`.
+budget before triggering expensive work, or after a run that felt heavy. This
+skill only reads and reports — it never writes to the spend table or adjusts
+budget thresholds itself. It reads directly from the `invocation_log` table —
+the same source `BudgetGuard` uses at call time — so the numbers are
+authoritative. For automated enforcement (raising before a call goes out), see
+`templates/cost_guard.py`.
 
 > The queries below assume SQLite. Adjust `date()` and `strftime()` calls for
 > Postgres (`current_date`, `date_trunc`, `extract`). Set `DB` to your database

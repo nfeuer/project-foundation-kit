@@ -125,3 +125,16 @@ lead, non-engineer, Go CLI dev, LLM startup team).
   plain-language bootstrap interview + outcome-language hook messages would
   serve solo/non-engineer users; without them, that audience is out of scope
   and the README should say so.
+
+### MODEL-01 — Sonnet 5 introductory pricing expires 2026-08-31
+
+- **Spec:** `cost-check` price sanity block; `docs/changelog.md` v2.1.0-alpha
+- **Status:** open (date-gated — 2026-08-31)
+- **Gap:** `cost-check`'s price block cites Sonnet 5 at "$3/$15 (intro $2/$10
+  through 2026-08-31)". That parenthetical goes stale by construction on
+  2026-09-01, and a sanity-check table that is quietly wrong is worse than one
+  that is absent — it will be used to "verify" a `cost_usd` figure it no longer
+  matches. On or after that date, drop the intro clause and re-verify all four
+  rows against current published pricing. The same review should confirm the
+  current-ID set shared by `cost-check`, `prompt-regression`, and `kit-doctor`
+  check 16 still names live models.

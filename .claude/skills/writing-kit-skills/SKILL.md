@@ -41,6 +41,27 @@ means the skill never fires. State the trigger condition explicitly:
 Write it as *situation → action*: someone (or the dispatcher in
 `using-the-kit`) reading only this line must know exactly when to invoke it.
 
+**Keep it YAML-safe.** The description is an unquoted scalar, so a colon
+followed by a space (`…before responding: scan the index`) makes a strict
+parser read it as a nested mapping and reject the whole frontmatter block —
+the skill then fails to load rather than loading with a bad description.
+Rephrase with a period or an em dash, or quote the entire value. The same
+applies to a value starting with `[`, `{`, `>`, `|`, `&`, `*`, or `#`.
+Verify before committing:
+
+```bash
+python3 -c "
+import glob, yaml
+bad = 0
+for f in sorted(glob.glob('.claude/skills/*/SKILL.md')):
+    try:
+        yaml.safe_load(open(f).read().split('---')[1])
+    except Exception as e:
+        print('FAIL', f, e); bad += 1
+print('frontmatter parses in every skill' if not bad else '%d file(s) failed' % bad)
+"
+```
+
 Optionally state the skill's **model fit** in the intro paragraph: code-writing/
 execution skills suit `models.code` / `models.code_light`; planning, validation,
 or review skills suit `models.plan`. Write the role key, not a bare model ID —

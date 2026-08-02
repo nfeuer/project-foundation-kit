@@ -26,7 +26,7 @@ ff009cfe8f9bc76e95efd0f1d53e72a6cbf56ff35c53becf65ac5817a25557fb  .claude/skills
 321e3a31e8ce399e927461678cc6ddc8e0849cfda0fa229551bbde9ed2415f15  .claude/skills/flaky-triage/SKILL.md
 40f248357ebda29809bbd6eb82da094c0919f9b206af7a71d669cc267a066683  .claude/skills/followup-tracking/SKILL.md
 95a01639ec04d9d48833082c5df778b80594fb05f9768d7955f0e6cb1592e0e8  .claude/skills/incident-capture/SKILL.md
-616f5fda2ef097c316599f69e4ad3a8ac943aa5972ef43550d42fe896dc0e747  .claude/skills/kit-doctor/SKILL.md
+15ffd861cd5deca3f3366c878b2904f0209a65bca9c93be288ad5fa7c84f0f9f  .claude/skills/kit-doctor/SKILL.md
 6bb358976b12b28479c2cdaa037d53b1f38c02e862c180d273562791fbc901b9  .claude/skills/kit-update/SKILL.md
 3051307ae10051aa86a8c80f120da670145b7bc7de9ff7b78cb4046e5f693f16  .claude/skills/logging-init/SKILL.md
 47e4243301ff075e0428a5746090489c2c502979b2fba2250dfcca7ad451996d  .claude/skills/migration-check/SKILL.md
@@ -41,5 +41,5 @@ dacb16a51ec7aef387cd0eeb226adc37ec8ba94e02f4e6d59a21dd7533f727b0  .claude/skills
 1488030c69a9cc044113f20a682fc1ece6b4725c3ad244831a8498cfef35b997  .claude/skills/release/SKILL.md
 a551286870434467287d9928e5b9401e6610cb1c1ad229ed12788d872c4285c6  .claude/skills/session-handoff/SKILL.md
 f3347c741d355a54a84bd66d488b4c51b2827ec4f2a11d04377b5a4df302f717  .claude/skills/sync-health/SKILL.md
-d08931f7e69719fc4d939f1cb5f87c320e140fa71ab365fdd5005a56be1b00ba  .claude/skills/using-the-kit/SKILL.md
-538246ab7a91605325a60d482b56ef9c0b8a3600a836df4ae9222ed45ad1c0a1  .claude/skills/writing-kit-skills/SKILL.md
+1c7f22fdbdae97066428810709b177ca267e2fcd33f51daf53c03ad480dd7cb2  .claude/skills/using-the-kit/SKILL.md
+68312e3cf0172491b31bcb6d9d203ff950453bce49e4ab369b078cf5824da4e4  .claude/skills/writing-kit-skills/SKILL.md

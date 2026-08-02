@@ -534,34 +534,43 @@ resolve. Every non-empty value among `models.code`, `models.code_light`,
 `claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5`, `claude-fable-5`.
 Empty-string values are skipped (they mean "no preference"). Each
 `models.effort.*` value must be one of `low`, `medium`, `high`, `xhigh`, `max`.
+The same block ships in every `presets/*.yaml`, so check those too — a preset
+naming a retired model hands it to the next project that adopts it.
 
 ```bash
-# kit.yaml → models.*
+# kit.yaml → models.*  (and the same block in presets/*.yaml)
 python3 -c "
-import yaml, re, sys
-with open('.claude/kit.yaml') as f:
-    d = yaml.safe_load(f) or {}
-m = d.get('models')
-if not m:
-    print('N/A (no models block - older profile)'); sys.exit(0)
+import yaml, re, glob
 current = {'claude-opus-5','claude-sonnet-5','claude-haiku-4-5','claude-fable-5'}
 efforts = {'low','medium','high','xhigh','max'}
-problems = 0
-for role in ('code','code_light','plan','mechanical'):
-    val = (m.get(role) or '').strip()
-    if not val or val in current:
+problems = checked = 0
+for path in ['.claude/kit.yaml'] + sorted(glob.glob('presets/*.yaml')):
+    try:
+        with open(path) as f:
+            d = yaml.safe_load(f) or {}
+    except OSError:
         continue
-    if val.startswith('claude-3') or re.search(r'-20[0-9]{6}\$', val):
-        print('FAIL models.%s: retired or date-suffixed model ID: %s' % (role, val))
-    else:
-        print('WARN models.%s: unrecognized model ID: %s' % (role, val))
-    problems += 1
-for role, eff in (m.get('effort') or {}).items():
-    if eff and eff not in efforts:
-        print('WARN models.effort.%s: %s not in low|medium|high|xhigh|max' % (role, eff))
+    m = d.get('models')
+    if not m:
+        continue
+    checked += 1
+    for role in ('code','code_light','plan','mechanical'):
+        val = (m.get(role) or '').strip()
+        if not val or val in current:
+            continue
+        if val.startswith('claude-3') or re.search(r'-20[0-9]{6}\$', val):
+            print('FAIL %s models.%s: retired or date-suffixed model ID: %s' % (path, role, val))
+        else:
+            print('WARN %s models.%s: unrecognized model ID: %s' % (path, role, val))
         problems += 1
-if problems == 0:
-    print('OK - every models.* value is a current model ID')
+    for role, eff in (m.get('effort') or {}).items():
+        if eff and eff not in efforts:
+            print('WARN %s models.effort.%s: %s not in low|medium|high|xhigh|max' % (path, role, eff))
+            problems += 1
+if not checked:
+    print('N/A (no models block - older profile)')
+elif not problems:
+    print('OK - %d file(s) checked, every models.* value is a current model ID' % checked)
 "
 ```
 

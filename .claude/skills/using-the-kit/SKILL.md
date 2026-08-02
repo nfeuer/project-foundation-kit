@@ -100,6 +100,18 @@ do not control it, run the step where you are and say nothing. In skill bodies
 write the role key, not a bare model ID; never a date-suffixed ID and never a
 retired `claude-3-*` ID.
 
+**Recurring steps cost far more than they look.** A cron, monitor, or
+self-scheduled check-in re-sends the whole session context on every firing, and
+one bound to an existing session inherits that session's model — so a heartbeat
+parked in an expensive session bills the entire conversation at that rate, every
+time. Run recurring checks in a fresh session on `models.mechanical`, back the
+interval off while the watched thing stays quiet, and set a stop condition. Do
+not use a flat 60-minute interval: the prompt cache expires at one hour, so
+every firing lands cold and pays full-price input — 45 minutes costs less in
+total than 60. When an event source (a webhook, a task notification) already
+reports the transition, poll only for what you own a pending action on. See
+`docs/solutions/2026-08-02-polling-cost-cache-cliff.md`.
+
 ## Output
 
 No report block — this skill's output is the *other* skill you invoke. If you
